@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reset password — MA Learn</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="login-card">
+  <h1>Set a new password</h1>
+  <input type="password" id="p" placeholder="New password (min 10 chars)" />
+  <button id="b">Save</button>
+  <div class="error" id="msg"></div>
+</div>
+<script type="module">
+  import { reset } from './js/session.js';
+  const params = new URLSearchParams(location.search);
+  const t = params.get('t');
+  if (!t) {
+    document.getElementById('msg').textContent = 'Missing reset token.';
+  }
+  document.getElementById('b').onclick = async () => {
+    const np = document.getElementById('p').value;
+    if (np.length < 10) {
+      document.getElementById('msg').textContent = 'Password must be at least 10 characters.';
+      return;
+    }
+    try {
+      const res = await reset(t, np);
+      const msg = document.getElementById('msg');
+      msg.className = 'success';
+      msg.innerHTML = `Password reset. Return to <a href="index.html" style="color: var(--gold)">login</a>.<br/><small>New hash: <code>${res.newPasswordHash}</code></small><br/><small>Update .env.staging + reload backend before logging in (Plan 1 interim).</small>`;
+    } catch (e) {
+      document.getElementById('msg').textContent = 'Error: ' + e.message;
+    }
+  };
+</script>
+</body>
+</html>

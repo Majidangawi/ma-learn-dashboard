@@ -1,0 +1,122 @@
+:root {
+  --bg: #080808;
+  --surface: #0E0E0E;
+  --surface2: #141414;
+  --gold: #C9A84C;
+  --ivory: #F5F0E8;
+  --silver: #BBBBBB;
+  --grey: #666;
+  --border: rgba(201, 168, 76, 0.12);
+  --red: #E05252;
+  --green: #4CAF82;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Cairo', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ivory);
+  direction: rtl;
+}
+
+.env-badge {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 999;
+  font-weight: 700;
+}
+.env-badge.staging { background: var(--red); color: #fff; }
+.env-badge.production { background: var(--green); color: #fff; }
+
+.login-card {
+  max-width: 360px;
+  margin: 20vh auto;
+  padding: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.login-card h1 {
+  color: var(--gold);
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+}
+.login-card p {
+  color: var(--silver);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+.login-card input[type=password],
+.login-card input[type=email] {
+  width: 100%;
+  padding: 10px 12px;
+  margin: 8px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--ivory);
+  border-radius: 6px;
+  font-family: inherit;
+}
+.login-card button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 12px;
+  background: var(--gold);
+  color: #000;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: inherit;
+}
+.login-card button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.login-card .forgot {
+  margin-top: 16px;
+  display: block;
+  color: var(--silver);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.login-card .forgot:hover { color: var(--gold); }
+
+.error { color: var(--red); margin-top: 12px; font-size: 0.9rem; }
+.success { color: var(--green); margin-top: 12px; font-size: 0.9rem; }
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  height: 100vh;
+}
+.sidebar {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 16px 0;
+}
+.sidebar a {
+  display: block;
+  padding: 10px 20px;
+  color: var(--silver);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.sidebar a.active, .sidebar a:hover {
+  color: var(--gold);
+  background: rgba(201, 168, 76, 0.06);
+}
+.content {
+  padding: 24px;
+  overflow-y: auto;
+}
+.content h2 {
+  color: var(--gold);
+  margin-bottom: 12px;
+}

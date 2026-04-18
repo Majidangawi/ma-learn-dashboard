@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MA Learn — Dashboard</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell" id="shell"></div>
+<script type="module">
+  import { me, logout } from './js/session.js';
+  import { mountEnvBadge } from './js/ui/env-badge.js';
+  import { mountSidebar } from './js/ui/sidebar.js';
+  import { API_BASE } from './js/api.js';
+
+  const shell = document.getElementById('shell');
+  const content = document.createElement('div');
+  content.className = 'content';
+  const side = mountSidebar(shell);
+  shell.appendChild(content);
+
+  try {
+    const u = await me();
+    content.innerHTML = `
+      <h2>Welcome, ${u.email}</h2>
+      <p style="color: var(--silver); margin-top: 8px">
+        The dashboard shell is alive. Features are in Plan 2.
+      </p>
+      <button id="lo" style="margin-top: 20px; padding: 8px 16px; background: var(--surface2); color: var(--ivory); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-family: inherit;">
+        Log out
+      </button>
+    `;
+    document.getElementById('lo').onclick = async () => {
+      await logout();
+      location.href = 'index.html';
+    };
+    side.setActive('home');
+  } catch {
+    location.href = 'index.html';
+  }
+
+  fetch(API_BASE + '/health')
+    .then((r) => r.json())
+    .then((b) => mountEnvBadge(b.environment))
+    .catch(() => mountEnvBadge('unknown'));
+</script>
+</body>
+</html>

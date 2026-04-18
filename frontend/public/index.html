@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard Login — MA Learn</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://accounts.google.com">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+<div class="login-card">
+  <h1>MA Learn — Dashboard</h1>
+
+  <div id="g_id_onload"
+       data-client_id="362548158836-mf7tr923ok443ndkh2kb14aeag7lrk3n.apps.googleusercontent.com"
+       data-context="signin"
+       data-ux_mode="popup"
+       data-callback="onGoogleCredential"
+       data-auto_prompt="false"></div>
+  <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black" data-text="sign_in_with" data-shape="rectangular"></div>
+
+  <input type="password" id="password" placeholder="Password" />
+  <button id="login-btn" disabled>Log in</button>
+
+  <a href="forgot.html" class="forgot">Forgot my password</a>
+
+  <div class="error" id="error"></div>
+</div>
+
+<script type="module">
+  import { login } from './js/session.js';
+  import { mountEnvBadge } from './js/ui/env-badge.js';
+  import { API_BASE } from './js/api.js';
+
+  let googleIdToken = null;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('error');
+
+  window.onGoogleCredential = (res) => {
+    googleIdToken = res.credential;
+    btn.disabled = false;
+  };
+
+  btn.onclick = async () => {
+    errEl.textContent = '';
+    const password = document.getElementById('password').value;
+    if (!googleIdToken) {
+      errEl.textContent = 'Please sign in with Google first.';
+      return;
+    }
+    btn.disabled = true;
+    try {
+      await login({ googleIdToken, password });
+      window.location.href = 'app.html';
+    } catch (e) {
+      errEl.textContent =
+        e.message === 'bad_password' ? 'Wrong password.' :
+        e.message === 'not_allowed' ? 'Not authorized.' :
+        'Login failed.';
+      btn.disabled = false;
+    }
+  };
+
+  // Fetch /health to set the env badge
+  fetch(API_BASE + '/health')
+    .then((r) => r.json())
+    .then((b) => mountEnvBadge(b.environment))
+    .catch(() => mountEnvBadge('unknown'));
+</script>
+</body>
+</html>
