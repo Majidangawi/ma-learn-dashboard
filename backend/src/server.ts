@@ -26,8 +26,9 @@ export async function buildServer() {
   return app;
 }
 
-const isDirectRun = import.meta.url === `file://${process.argv[1]}`;
-if (isDirectRun) {
+// Listen when run as the process entry (pm2, `node server.js`, or `tsx server.ts`).
+// Skip when imported by vitest — vitest sets VITEST=true automatically.
+if (!process.env.VITEST) {
   const app = await buildServer();
   const port = Number(process.env.PORT ?? 3400);
   await app.listen({ port, host: '0.0.0.0' });
