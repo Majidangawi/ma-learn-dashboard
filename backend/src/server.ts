@@ -4,6 +4,9 @@ import cors from '@fastify/cors';
 import { loadConfig } from './config.js';
 import { registerEnvBadge } from './env-badge.js';
 import { healthRoutes } from './routes/health.js';
+import { authRoutes } from './routes/auth.js';
+import { meRoutes } from './routes/me.js';
+import { registerAuthGuard } from './auth/middleware.js';
 
 export async function buildServer() {
   const config = loadConfig();
@@ -13,7 +16,10 @@ export async function buildServer() {
   await app.register(cors, { origin: config.FRONTEND_ORIGIN, credentials: true });
 
   registerEnvBadge(app, config);
+  registerAuthGuard(app, config);
   await healthRoutes(app, config);
+  await authRoutes(app, config);
+  await meRoutes(app);
 
   return app;
 }
