@@ -17,6 +17,7 @@ const schema = z.object({
   NOOR_MONTHLY_CAP_USD: z.coerce.number().default(100),
   FRONTEND_ORIGIN: z.string().default('http://localhost:5173'),
   PASSWORD_HASH: z.string().optional(),
+  APPS_SCRIPT_ADMIN_TOKEN: z.string().min(1).default('dev-token-not-set'),
 });
 
 export type Config = z.infer<typeof schema>;
