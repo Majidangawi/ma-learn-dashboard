@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
 </head>
 <body>
 <div class="app-shell" id="shell"></div>
@@ -16,32 +18,29 @@
   import { mountEnvBadge } from './js/ui/env-badge.js';
   import { mountSidebar } from './js/ui/sidebar.js';
   import { API_BASE } from './js/api.js';
+  import { startRouter } from './js/router.js';
 
   const shell = document.getElementById('shell');
-  const content = document.createElement('div');
-  content.className = 'content';
+  const contentWrap = document.createElement('div');
+  contentWrap.className = 'content';
   const side = mountSidebar(shell);
-  shell.appendChild(content);
+  shell.appendChild(contentWrap);
 
-  try {
-    const u = await me();
-    content.innerHTML = `
-      <h2>Welcome, ${u.email}</h2>
-      <p style="color: var(--silver); margin-top: 8px">
-        The dashboard shell is alive. Features are in Plan 2.
-      </p>
-      <button id="lo" style="margin-top: 20px; padding: 8px 16px; background: var(--surface2); color: var(--ivory); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; font-family: inherit;">
-        Log out
-      </button>
-    `;
-    document.getElementById('lo').onclick = async () => {
-      await logout();
-      location.href = 'index.html';
-    };
-    side.setActive('home');
-  } catch {
-    location.href = 'index.html';
-  }
+  try { await me(); } catch { location.href = 'index.html'; }
+
+  const topbar = document.createElement('div');
+  topbar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0 16px 0;border-bottom:1px solid var(--border);margin-bottom:16px;';
+  topbar.innerHTML = `<div></div><button class="btn-ghost" id="logout-btn">Log out</button>`;
+  contentWrap.appendChild(topbar);
+  document.getElementById('logout-btn').onclick = async () => { await logout(); location.href = 'index.html'; };
+
+  const pageHost = document.createElement('div');
+  contentWrap.appendChild(pageHost);
+
+  await startRouter({ content: pageHost, sidebar: side });
+
+  const { mountNoorWidget } = await import('./js/ui/noor-widget.js');
+  mountNoorWidget();
 
   fetch(API_BASE + '/health')
     .then((r) => r.json())
