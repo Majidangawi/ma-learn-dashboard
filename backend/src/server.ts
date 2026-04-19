@@ -7,6 +7,7 @@ import { healthRoutes } from './routes/health.js';
 import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
 import { noorRoutes } from './routes/noor.js';
+import { dataRoutes } from './routes/data.js';
 import { registerAuthGuard } from './auth/middleware.js';
 
 export async function buildServer() {
@@ -22,6 +23,9 @@ export async function buildServer() {
   await authRoutes(app, config);
   await meRoutes(app);
   await noorRoutes(app, config);
+  if (config.SHEET_ID) {
+    await dataRoutes(app, config);
+  }
 
   return app;
 }
