@@ -12,7 +12,12 @@
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
   // Redirect link.malearnsa.com + link-staging to the public linkbio page.
-  if (location.host.startsWith('link-staging.') || location.host.startsWith('link.')) {
+  if (
+    location.host.startsWith('link-staging.') ||
+    location.host.startsWith('link.') ||
+    location.host.startsWith('linkinbio.') ||
+    location.host.startsWith('linkinbio-staging.')
+  ) {
     location.replace('link.html');
   }
 </script>

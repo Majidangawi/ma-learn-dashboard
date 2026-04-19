@@ -3,6 +3,7 @@ const API_BASE = (() => {
   const h = (typeof location !== 'undefined' && location.host) || '';
   if (h === 'admin.malearnsa.com') return 'https://api.malearnsa.com';
   if (h === 'link.malearnsa.com') return 'https://api.malearnsa.com';
+  if (h === 'linkinbio.malearnsa.com') return 'https://api.malearnsa.com';
   return 'https://api-staging.malearnsa.com';
 })();
 

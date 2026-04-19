@@ -25,7 +25,7 @@
 <body>
 <div class="wrap" id="wrap"><p style="color:var(--silver)">…</p></div>
 <script>
-  const API = (location.host.startsWith('link-staging.'))
+  const API = (location.host.startsWith('link-staging.') || location.host.startsWith('linkinbio-staging.'))
     ? 'https://api-staging.malearnsa.com'
     : 'https://api.malearnsa.com';
   const APPS_SCRIPT = '__APPS_SCRIPT_URL__';
