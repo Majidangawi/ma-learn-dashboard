@@ -8,6 +8,7 @@ import { authRoutes } from './routes/auth.js';
 import { meRoutes } from './routes/me.js';
 import { noorRoutes } from './routes/noor.js';
 import { dataRoutes } from './routes/data.js';
+import { writesRoutes } from './routes/writes.js';
 import { registerAuthGuard } from './auth/middleware.js';
 
 export async function buildServer() {
@@ -25,6 +26,9 @@ export async function buildServer() {
   await noorRoutes(app, config);
   if (config.SHEET_ID) {
     await dataRoutes(app, config);
+  }
+  if (config.SHEET_ID && config.APPS_SCRIPT_URL) {
+    await writesRoutes(app, config);
   }
 
   return app;
