@@ -10,14 +10,22 @@ export interface Customer {
   source: string;
 }
 
+function pickIndex(header: string[], ...candidates: string[]): number {
+  for (const c of candidates) {
+    const i = header.indexOf(c);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
 export function parseCustomers(rows: string[][] | undefined): Customer[] {
   if (!rows || rows.length < 2) return [];
   const [header, ...data] = rows;
   const iEmail = header.indexOf('Email');
   const iName = header.indexOf('Name');
   const iProduct = header.indexOf('Product');
-  const iAmount = header.indexOf('AmountSAR');
-  const iPurchased = header.indexOf('PurchasedAt');
+  const iAmount = pickIndex(header, 'AmountSAR', 'Amount (SAR)', 'Amount');
+  const iPurchased = pickIndex(header, 'PurchasedAt', 'Date');
   const iToken = header.indexOf('Token');
   const iSource = header.indexOf('Source');
   return data
@@ -27,9 +35,9 @@ export function parseCustomers(rows: string[][] | undefined): Customer[] {
       name: r[iName] ?? '',
       product: r[iProduct] ?? '',
       amountSAR: Number(r[iAmount] ?? 0),
-      purchasedAt: r[iPurchased] ?? '',
-      token: r[iToken] ?? '',
-      source: r[iSource] ?? '',
+      purchasedAt: iPurchased >= 0 ? (r[iPurchased] ?? '') : '',
+      token: iToken >= 0 ? (r[iToken] ?? '') : '',
+      source: iSource >= 0 ? (r[iSource] ?? '') : '',
     }));
 }
 
