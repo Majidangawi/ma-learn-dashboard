@@ -11,7 +11,14 @@ export interface LinkbioItem {
   linkId: string; titleAR: string; titleEN: string; url: string;
   icon: string; description: string; active: boolean; order: number; clickCount: number;
 }
-export interface LinkbioHeader { photoURL: string; taglineAR: string; taglineEN: string; }
+export interface LinkbioHeader {
+  photoURL: string;
+  taglineAR: string;
+  taglineEN: string;
+  nameAR: string;
+  subtitleAR: string;
+  bioAR: string;
+}
 export interface EmailTemplate {
   templateId: string; name: string; subjectAR: string; subjectEN: string;
   bodyAR: string; bodyEN: string; variables: string[];
@@ -93,7 +100,10 @@ export function parseLinkbio(rows: string[][] | undefined): LinkbioItem[] {
 }
 
 export function parseLinkbioHeader(rows: string[][] | undefined): LinkbioHeader {
-  const out: LinkbioHeader = { photoURL: '', taglineAR: '', taglineEN: '' };
+  const out: LinkbioHeader = {
+    photoURL: '', taglineAR: '', taglineEN: '',
+    nameAR: '', subtitleAR: '', bioAR: '',
+  };
   if (!rows) return out;
   for (const r of rows.slice(1)) {
     const key = String(r[0] ?? '').trim();
@@ -101,6 +111,9 @@ export function parseLinkbioHeader(rows: string[][] | undefined): LinkbioHeader 
     if (key === 'PhotoURL') out.photoURL = val;
     else if (key === 'TaglineAR') out.taglineAR = val;
     else if (key === 'TaglineEN') out.taglineEN = val;
+    else if (key === 'NameAR') out.nameAR = val;
+    else if (key === 'SubtitleAR') out.subtitleAR = val;
+    else if (key === 'BioAR') out.bioAR = val;
   }
   return out;
 }
