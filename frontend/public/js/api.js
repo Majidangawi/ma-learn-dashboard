@@ -1,4 +1,10 @@
-const API_BASE = window.__MA_DASHBOARD_API__ ?? 'https://api-staging.malearnsa.com';
+const API_BASE = (() => {
+  if (typeof window !== 'undefined' && window.__MA_DASHBOARD_API__) return window.__MA_DASHBOARD_API__;
+  const h = (typeof location !== 'undefined' && location.host) || '';
+  if (h === 'admin.malearnsa.com') return 'https://api.malearnsa.com';
+  if (h === 'link.malearnsa.com') return 'https://api.malearnsa.com';
+  return 'https://api-staging.malearnsa.com';
+})();
 
 export async function api(path, opts = {}) {
   const res = await fetch(API_BASE + path, {
