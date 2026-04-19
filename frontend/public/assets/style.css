@@ -182,15 +182,19 @@ body {
 /* ───── linkbio list ───── */
 .linkbio-list { list-style:none; padding:0; }
 .linkbio-item {
-  display:grid; grid-template-columns: 24px 40px 1fr 200px 80px auto auto auto;
-  gap:12px; align-items:center; padding:10px 14px;
-  background:var(--surface); border:1px solid var(--border); border-radius:8px; margin-bottom:8px;
+  display:grid; grid-template-columns: 24px 60px 1fr auto;
+  gap:14px; align-items:center; padding:14px 18px;
+  background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:10px;
 }
-.linkbio-item .drag { cursor:grab; color:var(--silver); }
+.linkbio-item .drag { cursor:grab; color:var(--silver); font-size:1.1rem; }
 .linkbio-item .icon { font-size:1.5rem; text-align:center; }
-.linkbio-item .titles .en { color:var(--silver); font-size:.85rem; }
-.linkbio-item .url { color:var(--silver); text-decoration:none; font-size:.85rem; }
-.linkbio-item .clicks { color:var(--gold); font-size:.85rem; }
+.linkbio-item .titles { min-width:0; }
+.linkbio-item .titles .ar { color:var(--ivory); font-weight:700; font-size:.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.linkbio-item .titles .en { color:var(--silver); font-size:.8rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.linkbio-item .titles .url { display:block; color:var(--gold); text-decoration:none; font-size:.75rem; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:ltr; text-align:left; }
+.linkbio-item .titles .url:hover { text-decoration:underline; }
+.linkbio-item .meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+.linkbio-item .meta .clicks { color:var(--gold); font-size:.75rem; white-space:nowrap; }
 
 /* ───── Noor widget ───── */
 .noor-fab {

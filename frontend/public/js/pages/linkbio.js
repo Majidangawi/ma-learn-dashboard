@@ -21,14 +21,16 @@ export default async function mount(root) {
         <span class="drag">⠿</span>
         <span class="icon ${iconIsName(i.icon) ? 'icon-name' : ''}">${escapeHtml(i.icon || '•')}</span>
         <div class="titles">
-          <div>${escapeHtml(i.titleAR)}</div>
+          <div class="ar">${escapeHtml(i.titleAR)}</div>
           <div class="en">${escapeHtml(i.titleEN)}</div>
+          <a class="url" href="${escapeHtml(i.url)}" target="_blank">${escapeHtml(shorten(i.url))}</a>
         </div>
-        <a class="url" href="${escapeHtml(i.url)}" target="_blank">${escapeHtml(shorten(i.url))}</a>
-        <span class="clicks">${i.clickCount} clicks</span>
-        <label class="toggle"><input type="checkbox" ${i.active ? 'checked' : ''} data-id="${escapeHtml(i.linkId)}" data-field="active" /><span>${i.active ? 'ON' : 'OFF'}</span></label>
-        <button class="btn-ghost" data-action="edit" data-id="${escapeHtml(i.linkId)}">Edit</button>
-        <button class="btn-danger" data-action="delete" data-id="${escapeHtml(i.linkId)}">Delete</button>
+        <div class="meta">
+          <span class="clicks">${i.clickCount} clicks</span>
+          <label class="toggle"><input type="checkbox" ${i.active ? 'checked' : ''} data-id="${escapeHtml(i.linkId)}" data-field="active" /><span>${i.active ? 'ON' : 'OFF'}</span></label>
+          <button class="btn-ghost" data-action="edit" data-id="${escapeHtml(i.linkId)}">Edit</button>
+          <button class="btn-danger" data-action="delete" data-id="${escapeHtml(i.linkId)}">Delete</button>
+        </div>
       </li>`).join('');
 
     root.innerHTML = `
