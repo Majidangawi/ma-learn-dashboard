@@ -45,7 +45,7 @@ export function previewUpdateCoupon(existing: Coupon, patch: Partial<Coupon>): U
   const changes: UpdateCouponPreview['changes'] = [];
   for (const [k, v] of Object.entries(patch)) {
     if (k === 'code') continue;
-    const cur = (existing as Record<string, unknown>)[k];
+    const cur = (existing as unknown as Record<string, unknown>)[k];
     if (cur !== v) changes.push({ field: k, from: cur, to: v });
   }
   return { code: existing.code, changes };
@@ -91,7 +91,7 @@ export function previewLinkbioUpdate(existing: LinkbioItem, patch: Partial<Linkb
   const changes: LinkbioUpdatePreview['changes'] = [];
   for (const [k, v] of Object.entries(patch)) {
     if (k === 'linkId') continue;
-    const cur = (existing as Record<string, unknown>)[k];
+    const cur = (existing as unknown as Record<string, unknown>)[k];
     if (cur !== v) changes.push({ field: k, from: cur, to: v });
   }
   return { linkId: existing.linkId, changes };
