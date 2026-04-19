@@ -16,7 +16,25 @@ export async function buildServer() {
   const app = Fastify({ logger: { level: 'info' } });
 
   await app.register(cookie, { secret: config.JWT_SECRET });
-  await app.register(cors, { origin: config.FRONTEND_ORIGIN, credentials: true });
+
+  // CORS policy:
+  //   /api/public/* — any origin (public linkbio page served from linkinbio.malearnsa.com etc.)
+  //   /api/*        — only dashboard frontend origins (credentialed requests with session cookie)
+  const PUBLIC_ORIGINS = new Set([
+    'https://linkinbio.malearnsa.com',
+    'https://linkinbio-staging.malearnsa.com',
+    'https://link.malearnsa.com',
+    'https://link-staging.malearnsa.com',
+  ]);
+  await app.register(cors, {
+    credentials: true,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (origin === config.FRONTEND_ORIGIN) return cb(null, true);
+      if (PUBLIC_ORIGINS.has(origin)) return cb(null, true);
+      cb(null, false);
+    },
+  });
 
   registerEnvBadge(app, config);
   registerAuthGuard(app, config);
