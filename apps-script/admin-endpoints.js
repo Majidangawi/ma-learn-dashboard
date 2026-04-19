@@ -121,6 +121,22 @@ function adminUpdateCoupon(params) {
   return { ok: false, error: 'code_not_found' };
 }
 
+function adminDeleteCoupon(params) {
+  if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
+  const code = String(params.code || '').toUpperCase().trim();
+  if (!code) return { ok: false, error: 'code required' };
+  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const sh = ss.getSheetByName(COUPONS_SHEET);
+  const data = sh.getDataRange().getValues();
+  for (let r = 1; r < data.length; r++) {
+    if (String(data[r][0]).toUpperCase().trim() === code) {
+      sh.deleteRow(r + 1);
+      return { ok: true, code: code };
+    }
+  }
+  return { ok: false, error: 'code_not_found' };
+}
+
 function adminAddLinkbio(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
   const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);

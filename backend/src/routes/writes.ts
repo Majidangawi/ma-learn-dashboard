@@ -80,6 +80,18 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
     return { id, kind: 'update_coupon', preview, idempotencyKey: key };
   });
 
+  // ───── delete_coupon ─────
+  app.post('/api/writes/delete_coupon', async (req, reply) => {
+    const body = z.object({ code: z.string() }).parse(req.body);
+    const coupons = await readCoupons(sheets, sid);
+    const cur = coupons.find(c => c.code === body.code.toUpperCase());
+    if (!cur) return reply.code(404).send({ error: 'coupon_not_found' });
+    const preview = { code: cur.code, type: cur.type, value: cur.value, products: cur.products };
+    const key = idemKey('delete_coupon', body);
+    const id = store.stage({ kind: 'delete_coupon', inputs: body, preview, idempotencyKey: key });
+    return { id, kind: 'delete_coupon', preview, idempotencyKey: key };
+  });
+
   // ───── send_email ─────
   app.post('/api/writes/send_email', async (req, reply) => {
     const body = z.object({
@@ -208,6 +220,8 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
         const patch = (i.patch ?? {}) as Record<string, unknown>;
         return script.call('admin_update_coupon', { code: i.code, ...flattenCouponPatch(patch) });
       }
+      case 'delete_coupon':
+        return script.call('admin_delete_coupon', { code: i.code });
       case 'send_email': {
         const customers = await readCustomers(sheets, sid);
         const byEmail = new Map(customers.map(c => [c.email.toLowerCase(), c]));
