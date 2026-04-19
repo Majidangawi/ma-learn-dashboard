@@ -186,11 +186,12 @@ If language=AR, leave subjectEN and bodyEN empty strings. If language=EN, leave 
       system,
       messages: [{ role: 'user', content: `Idea:\n${body.idea}\n\nLanguage: ${body.language}` }],
     });
+    const usage = msg.usage as unknown as Record<string, number | undefined>;
     tracker.record(usdCost({
-      input_tokens: msg.usage.input_tokens,
-      output_tokens: msg.usage.output_tokens,
-      cache_creation_input_tokens: msg.usage.cache_creation_input_tokens ?? undefined,
-      cache_read_input_tokens: msg.usage.cache_read_input_tokens ?? undefined,
+      input_tokens: usage.input_tokens,
+      output_tokens: usage.output_tokens,
+      cache_creation_input_tokens: usage.cache_creation_input_tokens,
+      cache_read_input_tokens: usage.cache_read_input_tokens,
     }));
 
     const text = msg.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('').trim();
