@@ -32,8 +32,11 @@ function numOrNull(v: unknown): number | null {
 export function parseLessons(rows: string[][] | undefined): Lesson[] {
   if (!rows || rows.length < 2) return [];
   const [h, ...d] = rows;
-  const iId = idx(h, 'LessonID'), iCourse = idx(h, 'Course'), iModule = idx(h, 'Module');
-  const iTitle = idx(h, 'Title'), iActive = idx(h, 'Active'), iOrder = idx(h, 'Order');
+  // Accept both dashboard-native ('LessonID', 'Order') and existing sheet ('ID', 'Lesson Order') names.
+  const iId = idx(h, 'LessonID') >= 0 ? idx(h, 'LessonID') : idx(h, 'ID');
+  const iCourse = idx(h, 'Course'), iModule = idx(h, 'Module');
+  const iTitle = idx(h, 'Title'), iActive = idx(h, 'Active');
+  const iOrder = idx(h, 'Order') >= 0 ? idx(h, 'Order') : idx(h, 'Lesson Order');
   return d.filter(r => r[iId]).map(r => ({
     lessonId: r[iId] ?? '', course: r[iCourse] ?? '', module: r[iModule] ?? '',
     title: r[iTitle] ?? '', active: trueish(r[iActive]), order: Number(r[iOrder] ?? 0),

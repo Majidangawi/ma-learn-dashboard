@@ -17,9 +17,10 @@ export function buildToggleLessonUpdate(
 ): ToggleUpdate {
   if (rows.length < 1) throw new Error('Lessons sheet is empty');
   const header = rows[0];
-  const idCol = header.indexOf('LessonID');
+  let idCol = header.indexOf('LessonID');
+  if (idCol === -1) idCol = header.indexOf('ID');
   const activeCol = header.indexOf('Active');
-  if (idCol === -1) throw new Error('LessonID column missing');
+  if (idCol === -1) throw new Error('LessonID/ID column missing');
   if (activeCol === -1) throw new Error('Active column missing');
 
   for (let r = 1; r < rows.length; r++) {

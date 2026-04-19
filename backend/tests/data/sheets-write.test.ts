@@ -39,7 +39,7 @@ describe('buildToggleLessonUpdate', () => {
 
   it('throws if LessonID column missing', () => {
     const rows = [['Active'], ['TRUE']];
-    expect(() => buildToggleLessonUpdate(rows, 'L1', true)).toThrow(/LessonID column/);
+    expect(() => buildToggleLessonUpdate(rows, 'L1', true)).toThrow(/LessonID\/ID column/);
   });
 
   it('throws if sheet is empty', () => {
