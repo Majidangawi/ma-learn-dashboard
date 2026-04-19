@@ -5,6 +5,11 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 function shorten(u) { return u.length > 40 ? u.slice(0, 37) + '…' : u; }
+function iconIsName(s) {
+  if (!s) return false;
+  // If >1 char and all ASCII alphanumeric, treat as icon-registry name.
+  return s.length > 1 && /^[a-z0-9_-]+$/i.test(s);
+}
 
 export default async function mount(root) {
   root.innerHTML = '<h2 style="color:var(--gold)">Link-in-Bio</h2><p style="color:var(--silver)">Loading…</p>';
@@ -14,7 +19,7 @@ export default async function mount(root) {
     const rows = state.items.map(i => `
       <li data-id="${escapeHtml(i.linkId)}" class="linkbio-item">
         <span class="drag">⠿</span>
-        <span class="icon">${escapeHtml(i.icon || '•')}</span>
+        <span class="icon ${iconIsName(i.icon) ? 'icon-name' : ''}">${escapeHtml(i.icon || '•')}</span>
         <div class="titles">
           <div>${escapeHtml(i.titleAR)}</div>
           <div class="en">${escapeHtml(i.titleEN)}</div>

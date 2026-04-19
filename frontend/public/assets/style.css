@@ -226,3 +226,16 @@ body {
 
 /* ───── email html preview iframe ───── */
 .email-html-preview { width:100%; min-height:240px; max-height:400px; border:0; border-radius:6px; background:#0E0E0E; }
+
+/* icon name label (small, colored) vs emoji char (large) */
+.linkbio-item .icon.icon-name {
+  font-size: .7rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 40px;
+}
