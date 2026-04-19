@@ -1,0 +1,13 @@
+{
+  "actions": [
+    "admin_toggle_lesson",
+    "admin_create_coupon",
+    "admin_update_coupon",
+    "admin_add_linkbio",
+    "admin_update_linkbio",
+    "admin_delete_linkbio",
+    "admin_update_linkbio_header",
+    "admin_increment_linkbio_click",
+    "admin_send_email"
+  ]
+}
