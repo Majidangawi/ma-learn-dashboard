@@ -7,7 +7,7 @@ import {
 describe('previewToggleLesson', () => {
   it('returns cell+from+to for known lesson', () => {
     const lessons = [
-      { lessonId: 'L1', course: 't2', module: 'M3', title: 'Foo', active: false, order: 1 },
+      { lessonId: 'L1', course: 't2', module: 'M3', moduleOrder: 0, title: 'Foo', active: false, order: 1 },
     ];
     expect(previewToggleLesson(lessons, 'L1', true)).toEqual({
       lessonId: 'L1', title: 'Foo', module: 'M3', from: false, to: true,
