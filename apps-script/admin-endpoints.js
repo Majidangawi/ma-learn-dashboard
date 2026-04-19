@@ -230,6 +230,28 @@ function adminIncrementLinkbioClick(params) {
   return { ok: false, error: 'link_not_found' };
 }
 
+function adminAddEmailTemplate(params) {
+  if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
+  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const sh = ss.getSheetByName('EmailTemplates');
+  if (!sh) return { ok: false, error: 'no EmailTemplates tab' };
+  const templateId = String(params.template_id || ('tpl-' + Utilities.getUuid().slice(0, 8).toLowerCase()));
+  const data = sh.getDataRange().getValues();
+  for (let r = 1; r < data.length; r++) {
+    if (String(data[r][0]) === templateId) return { ok: false, error: 'template_id_exists' };
+  }
+  sh.appendRow([
+    templateId,
+    String(params.name || 'Untitled'),
+    String(params.subject_ar || ''),
+    String(params.subject_en || ''),
+    String(params.body_ar || ''),
+    String(params.body_en || ''),
+    String(params.variables || 'name'),
+  ]);
+  return { ok: true, templateId: templateId };
+}
+
 function adminSendEmail(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
   const to = String(params.to || '');

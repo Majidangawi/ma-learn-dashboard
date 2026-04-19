@@ -15,6 +15,7 @@ import {
   previewToggleLesson, previewCreateCoupon, previewUpdateCoupon,
   previewSendEmail, previewLinkbioAdd, previewLinkbioUpdate,
 } from '../writes/previews.js';
+import { brandWrapEmailBody } from '../writes/brand-wrap.js';
 
 function idemKey(kind: string, inputs: unknown): string {
   return createHash('sha256').update(kind + JSON.stringify(inputs)).digest('hex').slice(0, 24);
@@ -78,6 +79,44 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
     const key = idemKey('update_coupon', body);
     const id = store.stage({ kind: 'update_coupon', inputs: body, preview, idempotencyKey: key });
     return { id, kind: 'update_coupon', preview, idempotencyKey: key };
+  });
+
+  // ───── add_email_template ─────
+  app.post('/api/writes/add_email_template', async (req) => {
+    const body = z.object({
+      name: z.string().min(1),
+      templateId: z.string().optional(),
+      subjectAR: z.string().default(''),
+      subjectEN: z.string().default(''),
+      rawBodyAR: z.string().default(''),
+      rawBodyEN: z.string().default(''),
+      variables: z.string().default('name'),
+      // If true, rawBody* is already pre-wrapped HTML (used by Noor-generated drafts).
+      alreadyWrapped: z.boolean().default(false),
+    }).parse(req.body);
+    const bodyAR = body.rawBodyAR
+      ? (body.alreadyWrapped ? body.rawBodyAR : brandWrapEmailBody(body.rawBodyAR, 'AR'))
+      : '';
+    const bodyEN = body.rawBodyEN
+      ? (body.alreadyWrapped ? body.rawBodyEN : brandWrapEmailBody(body.rawBodyEN, 'EN'))
+      : '';
+    const preview = {
+      templateId: body.templateId ?? '(auto-generated)',
+      name: body.name,
+      subjectAR: body.subjectAR,
+      subjectEN: body.subjectEN,
+      bodyAR,
+      bodyEN,
+      variables: body.variables,
+    };
+    const key = idemKey('add_email_template', { name: body.name, subjectAR: body.subjectAR, subjectEN: body.subjectEN });
+    const id = store.stage({
+      kind: 'add_email_template',
+      inputs: { ...body, bodyAR, bodyEN },
+      preview,
+      idempotencyKey: key,
+    });
+    return { id, kind: 'add_email_template', preview, idempotencyKey: key };
   });
 
   // ───── delete_coupon ─────
@@ -222,6 +261,16 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
       }
       case 'delete_coupon':
         return script.call('admin_delete_coupon', { code: i.code });
+      case 'add_email_template':
+        return script.call('admin_add_email_template', {
+          template_id: i.templateId ?? '',
+          name: i.name,
+          subject_ar: i.subjectAR,
+          subject_en: i.subjectEN,
+          body_ar: i.bodyAR,
+          body_en: i.bodyEN,
+          variables: i.variables,
+        });
       case 'send_email': {
         const customers = await readCustomers(sheets, sid);
         const byEmail = new Map(customers.map(c => [c.email.toLowerCase(), c]));

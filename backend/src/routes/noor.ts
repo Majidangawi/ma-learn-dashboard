@@ -1,8 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import Anthropic from '@anthropic-ai/sdk';
 import type { Config } from '../config.js';
 import { createNoorClient } from '../noor/client.js';
-import { InMemoryCostTracker } from '../noor/cost-cap.js';
+import { InMemoryCostTracker, usdCost } from '../noor/cost-cap.js';
 import {
   createPlan, approvePlan, rejectPlan, markExecuted, type Plan,
 } from '../noor/state-machine.js';
@@ -143,4 +144,67 @@ export async function noorRoutes(app: FastifyInstance, config: Config): Promise<
     capUSD: config.NOOR_MONTHLY_CAP_USD,
     overCap: tracker.isOverCap(),
   }));
+
+  app.post('/api/noor/draft_email', async (req, reply) => {
+    const body = z.object({
+      idea: z.string().min(5),
+      language: z.enum(['AR', 'EN', 'BOTH']).default('BOTH'),
+    }).parse(req.body);
+    if (tracker.isOverCap()) return reply.code(429).send({ error: 'cost_cap_reached' });
+    if (!config.ANTHROPIC_API_KEY) return reply.code(500).send({ error: 'noor_not_configured' });
+
+    const anthropic = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
+    const system = `You are Noor, Majid Angawi's executive assistant helping draft marketing emails for MA Learn.
+
+Brand voice: inspirational, wise, friend-and-mentor. Can be funny and tough-love. Never corporate. Saudi dialect in Arabic (not MSA), not too formal.
+
+Use lightweight markdown inside body:
+  ## heading     — renders as gold-accent bold subheading
+  > highlight    — renders as gold-bordered callout box (for key facts, dates, CTAs)
+  - bullet       — bullet list item
+  **bold**       — inline strong
+
+Blank line = paragraph break. Single newline = soft line break.
+
+Produce both AR and EN versions unless language is restricted to one. The AR body must NOT be a literal translation of EN — rewrite in Saudi dialect with appropriate rhythm. The EN body stays warm and direct.
+
+Return ONLY valid JSON (no backticks, no markdown fences):
+{
+  "templateId": "slug-like-id",
+  "name": "Short human label",
+  "subjectAR": "string",
+  "subjectEN": "string",
+  "bodyAR": "markdown body",
+  "bodyEN": "markdown body"
+}
+
+If language=AR, leave subjectEN and bodyEN empty strings. If language=EN, leave subjectAR and bodyAR empty.`;
+
+    const msg = await anthropic.messages.create({
+      model: 'claude-opus-4-7',
+      max_tokens: 2500,
+      system,
+      messages: [{ role: 'user', content: `Idea:\n${body.idea}\n\nLanguage: ${body.language}` }],
+    });
+    tracker.record(usdCost({
+      input_tokens: msg.usage.input_tokens,
+      output_tokens: msg.usage.output_tokens,
+      cache_creation_input_tokens: msg.usage.cache_creation_input_tokens ?? undefined,
+      cache_read_input_tokens: msg.usage.cache_read_input_tokens ?? undefined,
+    }));
+
+    const text = msg.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('').trim();
+    const jsonStart = text.indexOf('{');
+    const jsonEnd = text.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) {
+      return reply.code(502).send({ error: 'noor_bad_json', raw: text });
+    }
+    let draft: Record<string, unknown>;
+    try {
+      draft = JSON.parse(text.slice(jsonStart, jsonEnd + 1));
+    } catch {
+      return reply.code(502).send({ error: 'noor_bad_json', raw: text });
+    }
+    return { draft, monthToDateUSD: tracker.monthToDateUSD() };
+  });
 }
