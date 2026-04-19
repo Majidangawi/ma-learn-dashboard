@@ -182,19 +182,21 @@ body {
 /* ───── linkbio list ───── */
 .linkbio-list { list-style:none; padding:0; }
 .linkbio-item {
-  display:grid; grid-template-columns: 24px 60px 1fr auto;
-  gap:14px; align-items:center; padding:14px 18px;
+  display:flex; align-items:center; gap:14px;
+  padding:12px 16px;
   background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:10px;
 }
-.linkbio-item .drag { cursor:grab; color:var(--silver); font-size:1.1rem; }
-.linkbio-item .icon { font-size:1.5rem; text-align:center; }
-.linkbio-item .titles { min-width:0; }
+.linkbio-item .drag { cursor:grab; color:var(--silver); font-size:1.1rem; flex-shrink:0; width:16px; }
+.linkbio-item .icon { text-align:center; flex-shrink:0; width:50px; font-size:1.5rem; }
+.linkbio-item .titles { flex:1; min-width:0; }
 .linkbio-item .titles .ar { color:var(--ivory); font-weight:700; font-size:.95rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .linkbio-item .titles .en { color:var(--silver); font-size:.8rem; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.linkbio-item .titles .url { display:block; color:var(--gold); text-decoration:none; font-size:.75rem; margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:ltr; text-align:left; }
+.linkbio-item .titles .url { display:block; color:var(--gold); text-decoration:none; font-size:.72rem; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:ltr; text-align:left; max-width:100%; }
 .linkbio-item .titles .url:hover { text-decoration:underline; }
-.linkbio-item .meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
-.linkbio-item .meta .clicks { color:var(--gold); font-size:.75rem; white-space:nowrap; }
+.linkbio-item .meta { display:flex; gap:6px; align-items:center; flex-shrink:0; }
+.linkbio-item .meta .clicks { color:var(--gold); font-size:.72rem; white-space:nowrap; margin-left:4px; }
+.linkbio-item .meta .btn-ghost, .linkbio-item .meta .btn-danger { padding:4px 10px; font-size:.78rem; white-space:nowrap; }
+.linkbio-item .meta .toggle { white-space:nowrap; }
 
 /* ───── Noor widget ───── */
 .noor-fab {
