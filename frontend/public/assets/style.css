@@ -209,3 +209,17 @@ body {
 .noor-q { background:rgba(201,168,76,0.08); color:var(--gold); padding:8px; border-radius:6px; margin-bottom:8px; }
 .noor-a { background:var(--surface2); color:var(--ivory); padding:8px; border-radius:6px; margin-bottom:8px; }
 .noor-a pre { white-space:pre-wrap; font:inherit; }
+
+/* ───── course cards (Lessons page) ───── */
+.course-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; margin-bottom:12px; overflow:hidden; }
+.course-card-head {
+  display:flex; align-items:center; gap:12px; width:100%;
+  background:transparent; border:0; padding:14px 18px;
+  color:var(--ivory); font:inherit; text-align:right; cursor:pointer;
+  transition:background .15s;
+}
+.course-card-head:hover { background:rgba(201,168,76,0.04); }
+.course-card-title { flex:1; color:var(--gold); font-weight:700; font-size:1rem; }
+.course-card-meta { color:var(--silver); font-size:.85rem; }
+.course-card-caret { color:var(--silver); width:16px; }
+.course-card-body { padding:0 18px 16px 18px; border-top:1px solid var(--border); }

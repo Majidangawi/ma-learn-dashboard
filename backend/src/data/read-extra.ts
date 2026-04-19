@@ -1,6 +1,6 @@
 import type { SheetsClient } from './sheets-client.js';
 
-export interface Lesson { lessonId: string; course: string; module: string; title: string; active: boolean; order: number; }
+export interface Lesson { lessonId: string; course: string; module: string; moduleOrder: number; title: string; active: boolean; order: number; }
 export interface Token { token: string; product: string; email: string; status: string; assignedAt: string; }
 export interface Coupon {
   code: string; type: string; value: number; minSAR: number;
@@ -35,10 +35,12 @@ export function parseLessons(rows: string[][] | undefined): Lesson[] {
   // Accept both dashboard-native ('LessonID', 'Order') and existing sheet ('ID', 'Lesson Order') names.
   const iId = idx(h, 'LessonID') >= 0 ? idx(h, 'LessonID') : idx(h, 'ID');
   const iCourse = idx(h, 'Course'), iModule = idx(h, 'Module');
+  const iModuleOrder = idx(h, 'Module Order');
   const iTitle = idx(h, 'Title'), iActive = idx(h, 'Active');
   const iOrder = idx(h, 'Order') >= 0 ? idx(h, 'Order') : idx(h, 'Lesson Order');
   return d.filter(r => r[iId]).map(r => ({
     lessonId: r[iId] ?? '', course: r[iCourse] ?? '', module: r[iModule] ?? '',
+    moduleOrder: iModuleOrder >= 0 ? Number(r[iModuleOrder] ?? 0) : 0,
     title: r[iTitle] ?? '', active: trueish(r[iActive]), order: Number(r[iOrder] ?? 0),
   }));
 }
