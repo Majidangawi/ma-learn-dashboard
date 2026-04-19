@@ -223,3 +223,6 @@ body {
 .course-card-meta { color:var(--silver); font-size:.85rem; }
 .course-card-caret { color:var(--silver); width:16px; }
 .course-card-body { padding:0 18px 16px 18px; border-top:1px solid var(--border); }
+
+/* ───── email html preview iframe ───── */
+.email-html-preview { width:100%; min-height:240px; max-height:400px; border:0; border-radius:6px; background:#0E0E0E; }

@@ -61,6 +61,18 @@ export function renderUpdateCouponPreview(p) {
     </table>`;
 }
 
+function renderEmailBody(body) {
+  const hasHtml = /<[a-z][\s\S]*?>/i.test(body);
+  if (hasHtml) {
+    // Trusted author content — render as actual HTML in a scoped wrapper so email styles
+    // don't leak into the dashboard. Iframe sandbox prevents any script execution.
+    const srcdoc = `<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;font:14px system-ui,sans-serif;color:#F5F0E8;background:#0E0E0E;padding:12px}</style></head><body>${body}</body></html>`;
+    return `<iframe class="email-html-preview" sandbox srcdoc="${escapeHtml(srcdoc)}"></iframe>`;
+  }
+  // Plain text — preserve line breaks.
+  return `<pre style="white-space:pre-wrap;font:inherit;color:var(--ivory)">${escapeHtml(body)}</pre>`;
+}
+
 export function renderSendEmailPreview(p) {
   const extra = p.requiresExtraApproval
     ? `<p style="color:var(--red)"><strong>Requires extra approval — ${p.totalRecipients} recipients (&gt;500).</strong></p>` : '';
@@ -68,7 +80,7 @@ export function renderSendEmailPreview(p) {
     <div class="email-sample">
       <div><strong>${escapeHtml(s.email)}</strong></div>
       <div class="subj">${escapeHtml(s.subject)}</div>
-      <pre>${escapeHtml(s.body)}</pre>
+      ${renderEmailBody(s.body)}
     </div>`).join('');
   return `
     <p>Language: <strong>${p.language}</strong> · Total: <strong>${p.totalRecipients}</strong></p>
