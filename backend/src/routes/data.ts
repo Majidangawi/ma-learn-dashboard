@@ -33,4 +33,13 @@ export async function dataRoutes(app: FastifyInstance, config: Config): Promise<
     ]);
     return computeInsights({ customers, tokens, now: new Date() });
   });
+
+  // Public (no auth) endpoint — served to link.malearnsa.com visitors.
+  app.get('/api/public/linkbio', async () => {
+    const [items, header] = await Promise.all([
+      readLinkbio(sheets, sid),
+      readLinkbioHeader(sheets, sid),
+    ]);
+    return { items: items.filter(x => x.active), header };
+  });
 }

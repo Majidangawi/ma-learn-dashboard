@@ -10,6 +10,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://accounts.google.com">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  // Redirect link.malearnsa.com + link-staging to the public linkbio page.
+  if (location.host.startsWith('link-staging.') || location.host.startsWith('link.')) {
+    location.replace('link.html');
+  }
+</script>
 </head>
 <body>
 <div class="login-card">
