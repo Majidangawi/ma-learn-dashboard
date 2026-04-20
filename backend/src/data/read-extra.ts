@@ -1,4 +1,6 @@
 import type { SheetsClient } from './sheets-client.js';
+import type { Block } from '../mail/blocks.js';
+import { markdownToBlocks } from '../mail/migrate-markdown.js';
 
 export interface Lesson { lessonId: string; course: string; module: string; moduleOrder: number; title: string; active: boolean; order: number; }
 export interface Token { token: string; product: string; email: string; status: string; assignedAt: string; }
@@ -22,6 +24,7 @@ export interface LinkbioHeader {
 export interface EmailTemplate {
   templateId: string; name: string; subjectAR: string; subjectEN: string;
   bodyAR: string; bodyEN: string; variables: string[];
+  blocksAR: Block[]; blocksEN: Block[];
 }
 
 function idx(header: string[] | undefined, name: string): number {
@@ -123,12 +126,31 @@ export function parseEmailTemplates(rows: string[][] | undefined): EmailTemplate
   const [h, ...d] = rows;
   const iT=idx(h,'TemplateID'), iN=idx(h,'Name'), iSA=idx(h,'SubjectAR'), iSE=idx(h,'SubjectEN');
   const iBA=idx(h,'BodyAR'), iBE=idx(h,'BodyEN'), iV=idx(h,'Variables');
-  return d.filter(r => r[iT]).map(r => ({
-    templateId: r[iT] ?? '', name: r[iN] ?? '',
-    subjectAR: r[iSA] ?? '', subjectEN: r[iSE] ?? '',
-    bodyAR: r[iBA] ?? '', bodyEN: r[iBE] ?? '',
-    variables: String(r[iV] ?? '').split(',').map(s => s.trim()).filter(Boolean),
-  }));
+  const iBlocks=idx(h,'Blocks');
+  return d.filter(r => r[iT]).map(r => {
+    const bodyAR = r[iBA] ?? '';
+    const bodyEN = r[iBE] ?? '';
+    // If Blocks col is populated, parse JSON. Else auto-migrate from BodyAR / BodyEN.
+    let blocksAR: Block[] = [];
+    let blocksEN: Block[] = [];
+    const rawBlocks = iBlocks >= 0 ? (r[iBlocks] ?? '') : '';
+    if (rawBlocks) {
+      try {
+        const parsed = JSON.parse(rawBlocks);
+        blocksAR = Array.isArray(parsed?.AR) ? parsed.AR : [];
+        blocksEN = Array.isArray(parsed?.EN) ? parsed.EN : [];
+      } catch { /* fall through to auto-migrate */ }
+    }
+    if (!blocksAR.length && bodyAR) blocksAR = markdownToBlocks(bodyAR);
+    if (!blocksEN.length && bodyEN) blocksEN = markdownToBlocks(bodyEN);
+    return {
+      templateId: r[iT] ?? '', name: r[iN] ?? '',
+      subjectAR: r[iSA] ?? '', subjectEN: r[iSE] ?? '',
+      bodyAR, bodyEN,
+      variables: String(r[iV] ?? '').split(',').map(s => s.trim()).filter(Boolean),
+      blocksAR, blocksEN,
+    };
+  });
 }
 
 async function readRange(sheets: SheetsClient, sheetId: string, range: string): Promise<string[][]> {
