@@ -33,6 +33,13 @@ vi.mock('../../src/services/send-newsletter.js', () => ({
   sendNewsletter: vi.fn(async (_args: unknown) => ({ ok: true, sent: 2 })),
 }));
 
+vi.mock('../../src/data/newsletter-events.js', () => ({
+  topClickedLinks: vi.fn(async (_id: string) => [
+    { url: 'https://a.com', count: 5 },
+    { url: 'https://b.com', count: 2 },
+  ]),
+}));
+
 function makeAppsScript() {
   const calls: { action: string; params: Record<string, unknown> }[] = [];
   async function call<T>(action: string, params: Record<string, unknown>): Promise<T> {
@@ -64,6 +71,7 @@ describe('newsletters route — auth', () => {
       ['POST', '/api/writes/newsletter/send_now'],
       ['POST', '/api/writes/newsletter/schedule'],
       ['POST', '/api/writes/newsletter/delete'],
+      ['GET', '/api/data/newsletters/NL-1/top_clicks'],
     ];
     for (const [method, url] of endpoints) {
       const res = await app.inject({ method: method as 'GET' | 'POST', url, payload: {} });
@@ -201,5 +209,21 @@ describe('POST /api/writes/newsletter/delete', () => {
     expect(res.statusCode).toBe(200);
     expect(as.calls[0].action).toBe('admin_mark_newsletter_status');
     expect(as.calls[0].params).toMatchObject({ newsletterId: 'NL-1', toStatus: 'deleted' });
+  });
+});
+
+describe('GET /api/data/newsletters/:id/top_clicks', () => {
+  it('returns the aggregator result', async () => {
+    const { app } = await buildApp('majid@x');
+    const res = await app.inject({
+      method: 'GET', url: '/api/data/newsletters/NL-SENT/top_clicks',
+    });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({
+      links: [
+        { url: 'https://a.com', count: 5 },
+        { url: 'https://b.com', count: 2 },
+      ],
+    });
   });
 });

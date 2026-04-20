@@ -4,6 +4,7 @@ import { readNewsletters } from '../data/newsletters.js';
 import { readSubscribers, countActive } from '../data/subscribers.js';
 import { applyFilter, type SegmentFilter } from '../data/segment-filter.js';
 import { sendNewsletter } from '../services/send-newsletter.js';
+import { topClickedLinks } from '../data/newsletter-events.js';
 
 interface AppsScriptLike {
   call<T>(action: string, params: Record<string, unknown>): Promise<T>;
@@ -101,6 +102,13 @@ const plugin: FastifyPluginAsync<NewslettersOpts> = async (app, opts) => {
     if (!newsletterId) return reply.code(400).send({ error: 'missing_newsletterId' });
     await opts.appsScript.call('admin_mark_newsletter_status', { newsletterId, toStatus: 'deleted' });
     return { ok: true };
+  });
+
+  // TOP CLICKED LINKS — stats view aggregation
+  app.get('/api/data/newsletters/:id/top_clicks', async (req, reply) => {
+    if (!opts.requireAuth(req)) return reply.code(401).send({ error: 'unauthorized' });
+    const id = (req.params as { id: string }).id;
+    return { links: await topClickedLinks(id) };
   });
 };
 

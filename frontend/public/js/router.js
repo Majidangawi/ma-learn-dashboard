@@ -13,6 +13,21 @@ const ROUTES = {
 export async function startRouter({ content, sidebar }) {
   async function render() {
     const hash = location.hash.replace(/^#/, '') || 'home';
+
+    // Parametric routes first. Today: #/newsletter/:id/stats.
+    const statsMatch = hash.match(/^\/?newsletter\/([^/]+)\/stats$/);
+    if (statsMatch) {
+      sidebar.setActive('newsletter');
+      content.innerHTML = '<p style="color:var(--silver)">Loading…</p>';
+      try {
+        const mod = await import('./pages/newsletter-stats.js');
+        await mod.default(content, { id: decodeURIComponent(statsMatch[1]) });
+      } catch (e) {
+        content.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+      }
+      return;
+    }
+
     const [pageId, ...rest] = hash.split('/');
     const loader = ROUTES[pageId] || ROUTES.home;
     sidebar.setActive(pageId);
