@@ -1,0 +1,56 @@
+<!-- MA Learn Newsletter form. Paste inside a container of your choice. -->
+<!-- Two required data attributes: data-placement="hero" or "footer" — controls sizing. -->
+
+<style>
+.ma-nl { background:#fff; color:#0E0E0E; padding:20px; border-radius:10px; max-width:560px; }
+.ma-nl[data-placement="hero"] { padding:28px; }
+.ma-nl h3 { color:#C9A84C; margin:0 0 12px; }
+.ma-nl p.sub { color:#555; margin:0 0 14px; font-size:.95rem; }
+.ma-nl input { width:100%; background:#f5f5f5; border:1px solid #ddd; color:#0E0E0E; padding:12px; border-radius:6px; margin-bottom:8px; font:inherit; }
+.ma-nl button { width:100%; background:#0E0E0E; color:#fff; border:none; padding:12px; border-radius:6px; font-weight:bold; cursor:pointer; }
+.ma-nl button:hover { filter:brightness(1.2); }
+.ma-nl-success { color:#C9A84C; font-weight:bold; padding:14px 0; text-align:center; }
+.ma-nl input[name="website_url"] { display:none; }
+[dir="rtl"] .ma-nl { text-align:right; }
+</style>
+
+<div class="ma-nl" data-placement="hero" id="ma-nl-hero">
+  <h3 lang="ar">انضم إلى النشرة البريدية</h3>
+  <h3 lang="en">Join the newsletter</h3>
+  <p class="sub" lang="ar">دروس أسبوعية في الذكاء الاصطناعي الإبداعي + أدوات جديدة. بدون سبام.</p>
+  <p class="sub" lang="en">Weekly creative AI lessons + tools. No spam.</p>
+  <input type="text" class="ma-nl-name" placeholder="الاسم / Name" autocomplete="name" />
+  <input type="email" class="ma-nl-email" placeholder="البريد الإلكتروني / Email" autocomplete="email" />
+  <input type="text" name="website_url" tabindex="-1" autocomplete="off" />
+  <button type="button">Subscribe</button>
+  <div class="ma-nl-success" style="display:none">✓ You're in — check your inbox.</div>
+</div>
+
+<!-- Duplicate the div with id="ma-nl-footer" and data-placement="footer" for the footer. -->
+
+<script>
+(function () {
+  const API = 'https://api.malearnsa.com';  // use api-staging on staging
+  document.querySelectorAll('.ma-nl').forEach((el) => {
+    if (localStorage.getItem('ma_nl_subscribed')) { el.style.display = 'none'; return; }
+    const lang = (document.documentElement.lang || 'AR').toUpperCase().startsWith('A') ? 'AR' : 'EN';
+    // Show only the right language hint texts; simple hide-other approach
+    el.querySelectorAll('[lang]').forEach(n => n.style.display = n.getAttribute('lang').toUpperCase().startsWith(lang.charAt(0)) ? '' : 'none');
+    el.querySelector('button').onclick = async () => {
+      const name = el.querySelector('.ma-nl-name').value.trim();
+      const email = el.querySelector('.ma-nl-email').value.trim();
+      const hp = el.querySelector('input[name="website_url"]').value;
+      if (!email) return;
+      const res = await fetch(API + '/api/public/subscribe', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, source: 'website', language: lang, website_url: hp }),
+      });
+      if (res.ok) {
+        el.querySelectorAll('input, button').forEach(n => n.style.display = 'none');
+        el.querySelector('.ma-nl-success').style.display = 'block';
+        localStorage.setItem('ma_nl_subscribed', '1');
+      }
+    };
+  });
+})();
+</script>
