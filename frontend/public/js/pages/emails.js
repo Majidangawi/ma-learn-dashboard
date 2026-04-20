@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { openApprovalModal, renderSendEmailPreview } from '../ui/approval-modal.js';
+import { mountComposer } from '../composer/index.js';
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
@@ -52,7 +53,7 @@ export default async function mount(root) {
         <div id="msg" class="modal-msg"></div>
       </section>` : '<p style="color:var(--silver)">No templates yet — click <strong>Add new template</strong> or <strong>Email by Noor</strong> to create one.</p>'}`;
 
-    document.getElementById('new-email-btn').onclick = openManualForm;
+    document.getElementById('new-email-btn').onclick = () => openManualForm();
     document.getElementById('noor-email-btn').onclick = openNoorForm;
     if (hasTemplates) document.getElementById('preview-btn').onclick = sendTemplate;
   }
@@ -97,27 +98,25 @@ export default async function mount(root) {
     }
   }
 
-  // ───── Add new email template (manual) ─────
-  function openManualForm() {
+  // ───── Add new email template (manual, block composer) ─────
+  function openManualForm(initial = {}) {
     const o = document.createElement('div');
     o.className = 'modal-overlay';
     o.innerHTML = `
-      <div class="modal-card" style="max-width:720px">
-        <h3>Add new email template</h3>
-        <p style="color:var(--silver);font-size:.85rem;margin-bottom:12px">
-          Write plain text. We wrap it in the MA Learn brand style on save.
-          Syntax hints: <code>## Heading</code> · <code>&gt; highlight box</code> · <code>- bullet</code> · <code>**bold**</code> · blank line = new paragraph.
-        </p>
-        <div class="form-field"><label>Template name (internal)</label><input id="m-name" placeholder="e.g. May Cohort Announcement" /></div>
-        <div class="form-field"><label>Template ID (optional slug, auto if blank)</label><input id="m-id" placeholder="may-cohort-announcement" /></div>
+      <div class="modal-card" style="max-width:1100px">
+        <h3>${initial.templateId ? 'Edit' : 'Add new'} email template</h3>
+        <div class="form-field"><label>Template name</label><input id="m-name" value="${escapeHtml(initial.name || '')}" placeholder="e.g. May Cohort Announcement" /></div>
+        <div class="form-field"><label>Template ID</label><input id="m-id" value="${escapeHtml(initial.templateId || '')}" placeholder="auto if blank" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-field"><label>Subject AR</label><input id="m-subj-ar" dir="rtl" value="${escapeHtml(initial.subjectAR || '')}" /></div>
+          <div class="form-field"><label>Subject EN</label><input id="m-subj-en" value="${escapeHtml(initial.subjectEN || '')}" /></div>
+        </div>
 
-        <h4 style="color:var(--gold);margin:16px 0 8px">العربية</h4>
-        <div class="form-field"><label>Subject AR</label><input id="m-subj-ar" dir="rtl" /></div>
-        <div class="form-field"><label>Body AR (plain text with markdown-lite)</label><textarea id="m-body-ar" dir="rtl" rows="8"></textarea></div>
+        <h4 style="color:var(--gold);margin:14px 0 6px">العربية</h4>
+        <div id="composer-ar"></div>
 
-        <h4 style="color:var(--gold);margin:16px 0 8px">English</h4>
-        <div class="form-field"><label>Subject EN</label><input id="m-subj-en" /></div>
-        <div class="form-field"><label>Body EN</label><textarea id="m-body-en" rows="8"></textarea></div>
+        <h4 style="color:var(--gold);margin:18px 0 6px">English</h4>
+        <div id="composer-en"></div>
 
         <div class="modal-actions">
           <button class="btn-ghost" id="m-cancel">Cancel</button>
@@ -126,6 +125,12 @@ export default async function mount(root) {
         <div class="modal-msg" id="m-msg"></div>
       </div>`;
     document.body.appendChild(o);
+
+    let blocksAR = initial.blocksAR || [];
+    let blocksEN = initial.blocksEN || [];
+    mountComposer({ root: o.querySelector('#composer-ar'), initialBlocks: blocksAR, language: 'AR', onChange: (b) => { blocksAR = b; } });
+    mountComposer({ root: o.querySelector('#composer-en'), initialBlocks: blocksEN, language: 'EN', onChange: (b) => { blocksEN = b; } });
+
     o.querySelector('#m-cancel').onclick = () => o.remove();
     o.querySelector('#m-save').onclick = async () => {
       const payload = {
@@ -133,8 +138,7 @@ export default async function mount(root) {
         templateId: o.querySelector('#m-id').value.trim() || undefined,
         subjectAR: o.querySelector('#m-subj-ar').value,
         subjectEN: o.querySelector('#m-subj-en').value,
-        rawBodyAR: o.querySelector('#m-body-ar').value,
-        rawBodyEN: o.querySelector('#m-body-en').value,
+        blocksAR, blocksEN,
       };
       try {
         const stage = await api('/api/writes/add_email_template', {
@@ -200,55 +204,16 @@ export default async function mount(root) {
     };
   }
 
+  // Route Noor drafts into the shared composer-based form.
   function openNoorReview(draft) {
-    const o = document.createElement('div');
-    o.className = 'modal-overlay';
-    o.innerHTML = `
-      <div class="modal-card" style="max-width:760px">
-        <h3>✨ Noor's draft</h3>
-        <p style="color:var(--silver);font-size:.85rem;margin-bottom:12px">
-          Edit anything you want before saving. Body is plain text with markdown-lite; we wrap in brand HTML on save.
-        </p>
-        <div class="form-field"><label>Template name</label><input id="r-name" value="${escapeHtml(draft.name || '')}" /></div>
-        <div class="form-field"><label>Template ID</label><input id="r-id" value="${escapeHtml(draft.templateId || '')}" /></div>
-        ${draft.subjectAR || draft.bodyAR ? `
-          <h4 style="color:var(--gold);margin:16px 0 8px">العربية</h4>
-          <div class="form-field"><label>Subject AR</label><input id="r-subj-ar" dir="rtl" value="${escapeHtml(draft.subjectAR || '')}" /></div>
-          <div class="form-field"><label>Body AR</label><textarea id="r-body-ar" dir="rtl" rows="10">${escapeHtml(draft.bodyAR || '')}</textarea></div>
-        ` : ''}
-        ${draft.subjectEN || draft.bodyEN ? `
-          <h4 style="color:var(--gold);margin:16px 0 8px">English</h4>
-          <div class="form-field"><label>Subject EN</label><input id="r-subj-en" value="${escapeHtml(draft.subjectEN || '')}" /></div>
-          <div class="form-field"><label>Body EN</label><textarea id="r-body-en" rows="10">${escapeHtml(draft.bodyEN || '')}</textarea></div>
-        ` : ''}
-        <div class="modal-actions">
-          <button class="btn-ghost" id="r-cancel">Discard</button>
-          <button class="btn-primary" id="r-save">Preview + save</button>
-        </div>
-        <div class="modal-msg" id="r-msg"></div>
-      </div>`;
-    document.body.appendChild(o);
-    o.querySelector('#r-cancel').onclick = () => o.remove();
-    o.querySelector('#r-save').onclick = async () => {
-      const payload = {
-        name: o.querySelector('#r-name').value.trim() || 'Untitled',
-        templateId: o.querySelector('#r-id').value.trim() || undefined,
-        subjectAR: o.querySelector('#r-subj-ar')?.value ?? '',
-        subjectEN: o.querySelector('#r-subj-en')?.value ?? '',
-        rawBodyAR: o.querySelector('#r-body-ar')?.value ?? '',
-        rawBodyEN: o.querySelector('#r-body-en')?.value ?? '',
-      };
-      try {
-        const stage = await api('/api/writes/add_email_template', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
-        o.remove();
-        openSaveApproval(stage);
-      } catch (e) {
-        o.querySelector('#r-msg').textContent = `Error: ${e.message}`;
-      }
-    };
+    openManualForm({
+      name: draft.name,
+      templateId: draft.templateId,
+      subjectAR: draft.subjectAR,
+      subjectEN: draft.subjectEN,
+      blocksAR: draft.blocksAR || [],
+      blocksEN: draft.blocksEN || [],
+    });
   }
 
   function openSaveApproval(stage) {

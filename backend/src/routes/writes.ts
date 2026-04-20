@@ -16,6 +16,7 @@ import {
   previewSendEmail, previewLinkbioAdd, previewLinkbioUpdate,
 } from '../writes/previews.js';
 import { brandWrapEmailBody } from '../writes/brand-wrap.js';
+import { renderBlocks, type Block } from '../mail/blocks.js';
 
 function idemKey(kind: string, inputs: unknown): string {
   return createHash('sha256').update(kind + JSON.stringify(inputs)).digest('hex').slice(0, 24);
@@ -83,6 +84,7 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
 
   // ───── add_email_template ─────
   app.post('/api/writes/add_email_template', async (req) => {
+    const blockSchema = z.array(z.record(z.unknown())).optional();
     const body = z.object({
       name: z.string().min(1),
       templateId: z.string().optional(),
@@ -90,16 +92,36 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
       subjectEN: z.string().default(''),
       rawBodyAR: z.string().default(''),
       rawBodyEN: z.string().default(''),
+      blocksAR: blockSchema,
+      blocksEN: blockSchema,
       variables: z.string().default('name'),
-      // If true, rawBody* is already pre-wrapped HTML (used by Noor-generated drafts).
+      // If true, rawBody* is already pre-wrapped HTML (used by older Noor drafts).
       alreadyWrapped: z.boolean().default(false),
     }).parse(req.body);
-    const bodyAR = body.rawBodyAR
-      ? (body.alreadyWrapped ? body.rawBodyAR : brandWrapEmailBody(body.rawBodyAR, 'AR'))
-      : '';
-    const bodyEN = body.rawBodyEN
-      ? (body.alreadyWrapped ? body.rawBodyEN : brandWrapEmailBody(body.rawBodyEN, 'EN'))
-      : '';
+
+    const hasBlocks = (body.blocksAR && body.blocksAR.length > 0) || (body.blocksEN && body.blocksEN.length > 0);
+
+    let bodyAR: string;
+    let bodyEN: string;
+    let blocksJson = '';
+
+    if (hasBlocks) {
+      bodyAR = body.blocksAR && body.blocksAR.length > 0
+        ? renderBlocks(body.blocksAR as unknown as Block[], 'AR', {})
+        : (body.rawBodyAR ? brandWrapEmailBody(body.rawBodyAR, 'AR') : '');
+      bodyEN = body.blocksEN && body.blocksEN.length > 0
+        ? renderBlocks(body.blocksEN as unknown as Block[], 'EN', {})
+        : (body.rawBodyEN ? brandWrapEmailBody(body.rawBodyEN, 'EN') : '');
+      blocksJson = JSON.stringify({ AR: body.blocksAR ?? [], EN: body.blocksEN ?? [] });
+    } else {
+      bodyAR = body.rawBodyAR
+        ? (body.alreadyWrapped ? body.rawBodyAR : brandWrapEmailBody(body.rawBodyAR, 'AR'))
+        : '';
+      bodyEN = body.rawBodyEN
+        ? (body.alreadyWrapped ? body.rawBodyEN : brandWrapEmailBody(body.rawBodyEN, 'EN'))
+        : '';
+    }
+
     const preview = {
       templateId: body.templateId ?? '(auto-generated)',
       name: body.name,
@@ -112,7 +134,7 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
     const key = idemKey('add_email_template', { name: body.name, subjectAR: body.subjectAR, subjectEN: body.subjectEN });
     const id = store.stage({
       kind: 'add_email_template',
-      inputs: { ...body, bodyAR, bodyEN },
+      inputs: { ...body, bodyAR, bodyEN, blocksJson },
       preview,
       idempotencyKey: key,
     });
@@ -270,6 +292,7 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
           body_ar: i.bodyAR,
           body_en: i.bodyEN,
           variables: i.variables,
+          blocks: i.blocksJson ?? '',
         });
       case 'send_email': {
         const customers = await readCustomers(sheets, sid);
