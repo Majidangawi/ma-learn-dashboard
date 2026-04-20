@@ -9,7 +9,7 @@ export const BLOCK_TYPES = {
   heading: {
     label: 'Heading',
     icon: 'H',
-    default: () => ({ type: 'heading', text: '' }),
+    default: () => ({ type: 'heading', text: '', level: 2, subtext: '', bold: true, italic: false }),
   },
   banner: {
     label: 'Banner image',

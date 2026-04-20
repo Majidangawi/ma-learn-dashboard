@@ -9,12 +9,61 @@ function substitute(s, vars) {
   return s.replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? esc(vars[k]) : m));
 }
 
+// Same allowlist as backend sanitizer — keep in sync.
+const ALLOWED_TAGS = new Set(['b', 'strong', 'i', 'em', 'u', 'br', 'a', 'span']);
+const ALLOWED_ATTRS_BY_TAG = { a: new Set(['href', 'target', 'rel']), span: new Set([]) };
+const SAFE_URL_RE = /^(https?:|mailto:|tel:|#|\/)/i;
+
+function sanitizeInlineHtml(html) {
+  if (!html) return '';
+  let working = String(html)
+    .replace(/<\/(?:div|p)>\s*<(?:div|p)[^>]*>/gi, '<br>')
+    .replace(/<(?:div|p)[^>]*>/gi, '')
+    .replace(/<\/(?:div|p)>/gi, '<br>');
+  return working.replace(/<(\/?)([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g, (match, close, tag, attrs) => {
+    const tagLc = tag.toLowerCase();
+    if (!ALLOWED_TAGS.has(tagLc)) return '';
+    if (close) return `</${tagLc}>`;
+    if (tagLc === 'br') return '<br>';
+    const allowed = ALLOWED_ATTRS_BY_TAG[tagLc];
+    if (!allowed || allowed.size === 0) return `<${tagLc}>`;
+    const kept = [];
+    const attrRe = /([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g;
+    let m;
+    while ((m = attrRe.exec(attrs)) !== null) {
+      const name = m[1].toLowerCase();
+      const value = m[2] ?? m[3] ?? m[4] ?? '';
+      if (!allowed.has(name)) continue;
+      if (name === 'href' && !SAFE_URL_RE.test(value)) continue;
+      if (name === 'target' && value !== '_blank') continue;
+      kept.push(`${name}="${value.replace(/"/g, '&quot;')}"`);
+    }
+    if (tagLc === 'a' && kept.some(k => k.startsWith('target='))) {
+      if (!kept.some(k => k.startsWith('rel='))) kept.push('rel="noopener"');
+    }
+    return `<${tagLc}${kept.length ? ' ' + kept.join(' ') : ''}>`;
+  });
+}
+
+function substituteInHtml(html, vars) {
+  return html.replace(/\{(\w+)\}/g, (m, k) => (vars && k in vars ? esc(vars[k]) : m));
+}
+
 function renderBlock(block, vars, isAR) {
   switch (block.type) {
     case 'text':
-      return `<p style="color:#222;margin:12px 0;">${substitute(esc(block.content), vars).replace(/\n/g, '<br>')}</p>`;
-    case 'heading':
-      return `<p style="font-size:1.15rem;font-weight:bold;color:#222;margin:22px 0 10px;">${substitute(esc(block.text), vars)}</p>`;
+      return `<p style="color:#222;margin:12px 0;">${substituteInHtml(sanitizeInlineHtml(block.content || ''), vars || {})}</p>`;
+    case 'heading': {
+      const sizeMap = { 1: '1.75rem', 2: '1.35rem', 3: '1.1rem' };
+      const fontSize = sizeMap[block.level || 2] || sizeMap[2];
+      const weight = block.bold === false ? 'normal' : 'bold';
+      const style = block.italic ? 'italic' : 'normal';
+      const headingHtml = `<p style="font-size:${fontSize};font-weight:${weight};font-style:${style};color:#222;margin:22px 0 6px;line-height:1.3;">${substituteInHtml(sanitizeInlineHtml(block.text || ''), vars || {})}</p>`;
+      const subtextHtml = block.subtext
+        ? `<p style="font-size:0.9rem;color:#888;margin:0 0 14px;line-height:1.5;">${substitute(esc(block.subtext), vars || {})}</p>`
+        : '';
+      return headingHtml + subtextHtml;
+    }
     case 'banner': {
       // Banner blocks can be toggled invisible in preview via visibleInPreview=false,
       // but stay in the data and render in the actual email. Helps draft without

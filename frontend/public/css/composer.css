@@ -42,6 +42,20 @@
 .block-picker button:hover, .variable-picker button:hover { background:#2a2a2a; }
 .block-picker .icon { width:20px; color:#C9A84C; font-weight:bold; }
 
+/* Rich-text contentEditable editor. Matches the look of input/textarea. */
+.rich-editor { min-height:72px; background:#0a0a0a; border:1px solid #2a2a2a; color:#eee; border-radius:6px; padding:8px 10px; outline:none; font:inherit; line-height:1.55; }
+.rich-editor.single-line { min-height:0; padding:8px 10px; }
+.rich-editor:focus { border-color:#C9A84C; }
+.rich-editor:empty::before { content:attr(data-placeholder); color:#555; pointer-events:none; }
+.rich-editor a { color:#C9A84C; text-decoration:underline; }
+.rich-editor strong, .rich-editor b { color:#fff; }
+.rich-editor em, .rich-editor i { color:#ddd; }
+
+/* Floating format toolbar (appears on selection). */
+.format-toolbar { display:flex; gap:4px; background:#111; border:1px solid #333; border-radius:8px; padding:4px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,.45); }
+.format-toolbar button { background:transparent; color:#ddd; border:none; cursor:pointer; padding:5px 10px; border-radius:4px; font-size:.95rem; min-width:30px; }
+.format-toolbar button:hover { background:#2a2a2a; color:#C9A84C; }
+
 @media (max-width:900px) {
   .composer-wrap { grid-template-columns:1fr; }
   .composer-preview { position:static; }

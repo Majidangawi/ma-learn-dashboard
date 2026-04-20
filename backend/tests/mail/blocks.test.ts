@@ -74,12 +74,15 @@ describe('renderBlocks', () => {
     expect(html).toContain('dir="rtl"');
   });
 
-  it('escapes HTML in content', () => {
+  it('strips disallowed tags (e.g. <script>) from text content', () => {
     const html = renderBlocks(
-      [{ type: 'text', content: '<script>alert(1)</script>' }],
+      [{ type: 'text', content: '<script>alert(1)</script>hello<b>bold</b>' }],
       'EN', {}
     );
+    // <script>...</script> tags are stripped entirely — only allowed tags survive.
     expect(html).not.toContain('<script>');
-    expect(html).toContain('&lt;script&gt;');
+    expect(html).not.toContain('</script>');
+    expect(html).toContain('<b>bold</b>');
+    expect(html).toContain('hello');
   });
 });
