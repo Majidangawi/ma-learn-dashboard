@@ -37,7 +37,7 @@ export async function noorRoutes(app: FastifyInstance, config: Config): Promise<
   function scriptClient() {
     if (!_script) {
       if (!config.APPS_SCRIPT_URL) throw new Error('APPS_SCRIPT_URL missing');
-      _script = createAppsScriptClient({ url: config.APPS_SCRIPT_URL, adminToken: config.APPS_SCRIPT_ADMIN_TOKEN });
+      _script = createAppsScriptClient({ url: config.APPS_SCRIPT_URL, adminToken: config.APPS_SCRIPT_ADMIN_TOKEN, sheetId: config.SHEET_ID });
     }
     return _script;
   }

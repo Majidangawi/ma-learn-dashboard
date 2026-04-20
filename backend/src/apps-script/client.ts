@@ -2,12 +2,13 @@ export interface AppsScriptClient {
   call<T = unknown>(action: string, params: Record<string, unknown>): Promise<T>;
 }
 
-export function createAppsScriptClient(opts: { url: string; adminToken: string }): AppsScriptClient {
+export function createAppsScriptClient(opts: { url: string; adminToken: string; sheetId?: string }): AppsScriptClient {
   return {
     async call<T>(action: string, params: Record<string, unknown>): Promise<T> {
       const qs = new URLSearchParams();
       qs.set('action', action);
       qs.set('admin_token', opts.adminToken);
+      if (opts.sheetId && !('sheetId' in params)) qs.set('sheetId', opts.sheetId);
       for (const [k, v] of Object.entries(params)) {
         if (v === undefined || v === null) continue;
         qs.set(k, typeof v === 'object' ? JSON.stringify(v) : String(v));

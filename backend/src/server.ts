@@ -77,6 +77,7 @@ export async function buildServer() {
     ? createAppsScriptClient({
         url: config.APPS_SCRIPT_URL,
         adminToken: config.APPS_SCRIPT_ADMIN_TOKEN,
+        sheetId: config.SHEET_ID,
       })
     : {
         async call<T>(): Promise<T> {

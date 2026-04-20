@@ -27,6 +27,7 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
   const script = createAppsScriptClient({
     url: config.APPS_SCRIPT_URL,
     adminToken: config.APPS_SCRIPT_ADMIN_TOKEN,
+    sheetId: config.SHEET_ID,
   });
   const sheets = await createSheetsClient(config);
   const sid = config.SHEET_ID!;
