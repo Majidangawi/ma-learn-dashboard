@@ -1,62 +1,614 @@
-.composer-wrap { display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
-.composer-panel { background:var(--surface); padding:14px; border-radius:10px; min-height:400px; }
-.composer-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; color:var(--silver); font-size:.9rem; }
-.composer-toolbar select { background:#111; border:1px solid #333; color:#eee; padding:4px 8px; border-radius:6px; }
-.composer-blocks { display:flex; flex-direction:column; gap:8px; }
-.composer-block { background:#0E0E0E; border:1px solid #222; border-radius:8px; padding:10px; display:grid; grid-template-columns:28px 1fr 28px; gap:10px; position:relative; transition:border-color .12s; }
-.composer-block.dragging { opacity:.4; }
+/* ============================================================
+   MA Learn Composer · v2 design system
+   Scope: .composer-wrap and its descendants (tokens are local).
+
+   Design principles (from ui-ux-pro-max Priority 1–10):
+   · Gold accent reserved for identity + primary action; never decoration
+   · 4pt spacing scale with semantic token names
+   · Motion: 120–300ms, ease-out curves, every animation has meaning
+   · Elevation: 3 levels (flat/raised/floating) — no ad-hoc shadows
+   · Contrast: primary text ≥4.5:1, secondary ≥3:1 against every surface
+   · State clarity: hover/focus/active/drag all visually distinct
+   · Reduced-motion respected (see @media prefers-reduced-motion)
+   · Dark-mode-native — no light mode equivalent (composer is always dark)
+   ============================================================ */
+
+.composer-wrap {
+  /* ─── Color tokens ─── */
+  --c-bg:          #0A0A0C;
+  --c-surface-1:   #131316;   /* panel background */
+  --c-surface-2:   #1A1A1E;   /* block resting */
+  --c-surface-3:   #22222A;   /* hover */
+  --c-surface-4:   #2A2A34;   /* active / selected */
+  --c-border:      #26262E;
+  --c-border-mid:  #353540;
+  --c-border-gold: rgba(201,168,76,0.5);
+
+  --c-ink:         #F1EFEA;   /* primary text, ~13:1 on bg */
+  --c-ink-2:       #BFBCB3;   /* secondary, ~7:1 */
+  --c-ink-3:       #89867E;   /* tertiary / placeholder, ~4.7:1 */
+  --c-ink-on-gold: #0A0A0C;
+
+  --c-gold:        #C9A84C;
+  --c-gold-bright: #E4C36B;
+  --c-gold-soft:   rgba(201,168,76,0.12);
+  --c-gold-glow:   rgba(201,168,76,0.38);
+
+  --c-danger:      #E26D63;
+  --c-success:     #5FB08C;
+
+  /* ─── Spacing (4pt base) ─── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+
+  /* ─── Radius ─── */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+
+  /* ─── Typography ─── */
+  --ff: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  --fs-xs: 11px;
+  --fs-sm: 12.5px;
+  --fs-md: 14px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --lh-tight: 1.25;
+  --lh-normal: 1.5;
+  --lh-loose: 1.7;
+  --lt-wide: 0.02em;
+
+  /* ─── Motion ─── */
+  --ease-out: cubic-bezier(0.2, 0.7, 0.25, 1);
+  --ease-in:  cubic-bezier(0.6, 0.0, 0.8, 0.25);
+  --dur-fast: 120ms;
+  --dur-med:  180ms;
+  --dur-slow: 260ms;
+
+  /* ─── Elevation ─── */
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.02);
+  --shadow-2: 0 6px 18px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.03);
+  --shadow-3: 0 20px 48px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+  --shadow-focus: 0 0 0 3px var(--c-gold-soft);
+
+  /* ─── Layout ─── */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--sp-5);
+  align-items: start;
+  font-family: var(--ff);
+  color: var(--c-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+   LEFT · Canvas panel (block list + toolbar)
+   ============================================================ */
+.composer-panel {
+  background: var(--c-surface-1);
+  padding: var(--sp-5);
+  border-radius: var(--r-xl);
+  min-height: 520px;
+  border: 1px solid var(--c-border);
+  box-shadow: var(--shadow-1);
+}
+
+.composer-toolbar {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-5);
+  padding-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--c-border);
+  color: var(--c-ink-2);
+  font-size: var(--fs-sm);
+}
+
+.composer-toolbar label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--c-ink-2);
+}
+
+.composer-toolbar select {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border-mid);
+  color: var(--c-ink);
+  padding: 6px var(--sp-2);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+.composer-toolbar select:hover,
+.composer-toolbar select:focus-visible { border-color: var(--c-gold); outline: none; }
+
+.composer-blocks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+/* ─── Block card ─── */
+.composer-block {
+  background: var(--c-surface-2);
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  padding: var(--sp-3) var(--sp-4) var(--sp-3) var(--sp-3);
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr) 32px;
+  gap: var(--sp-3);
+  position: relative;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-med) var(--ease-out);
+}
+.composer-block:hover {
+  background: var(--c-surface-3);
+  border-color: var(--c-border);
+}
+.composer-block:focus-within {
+  background: var(--c-surface-3);
+  border-color: var(--c-border-gold);
+  box-shadow: var(--shadow-focus);
+}
+.composer-block.dragging {
+  opacity: 0.35;
+  transform: scale(0.98);
+}
+
+/* Drop indicator — glowing gold line between blocks. */
 .composer-block.drop-above::before,
 .composer-block.drop-below::after {
-  content:""; position:absolute; left:6px; right:6px; height:3px; background:#C9A84C;
-  border-radius:3px; box-shadow:0 0 12px rgba(201,168,76,.6); pointer-events:none;
+  content: "";
+  position: absolute;
+  left: var(--sp-3);
+  right: var(--sp-3);
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--c-gold) 20%, var(--c-gold-bright) 50%, var(--c-gold) 80%, transparent);
+  box-shadow: 0 0 14px var(--c-gold-glow);
+  pointer-events: none;
+  animation: pulse-glow 1.2s var(--ease-out) infinite;
 }
-.composer-block.drop-above::before { top:-5px; }
-.composer-block.drop-below::after { bottom:-5px; }
-.composer-block-handle { color:#666; cursor:grab; user-select:none; align-self:start; padding-top:6px; font-size:1.1rem; }
-.composer-block-handle:active { cursor:grabbing; }
-.composer-block:hover .composer-block-handle { color:#C9A84C; }
-.composer-block-body input, .composer-block-body textarea { width:100%; background:#0a0a0a; border:1px solid #2a2a2a; color:#eee; border-radius:6px; padding:8px; font:inherit; }
-.composer-block-body textarea { font-family:inherit; resize:vertical; }
-.composer-block-body label { display:block; color:#888; font-size:.8rem; margin:8px 0 2px; }
-.composer-block-actions button.composer-del { background:transparent; border:none; color:#888; font-size:1.2rem; cursor:pointer; }
-.composer-block-actions button.composer-del:hover { color:#f55; }
-.composer-add { margin-top:10px; background:#1a1a1a; border:1px dashed #333; color:#aaa; padding:10px; width:100%; border-radius:8px; cursor:pointer; }
-.composer-add:hover { background:#222; color:#fff; }
+.composer-block.drop-above::before { top: -6px; }
+.composer-block.drop-below::after  { bottom: -6px; }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.85; }
+  50%      { opacity: 1; }
+}
 
-/* Preview pane is vertically resizable. Starts 560px, user can drag the
-   bottom-right corner to extend it as the email grows. Position sticky keeps
-   it in view while scrolling the block list. */
-.composer-preview { background:#0a0a0a; border:1px solid #222; border-radius:10px; padding:10px; position:sticky; top:10px; display:flex; flex-direction:column; resize:vertical; overflow:auto; min-height:400px; height:560px; max-height:calc(100vh - 120px); }
-.composer-preview-label { color:var(--silver); font-size:.8rem; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
-.composer-preview-frame { flex:1; min-height:0; }
-.composer-preview-frame iframe { width:100%; height:100%; border:none; background:#fff; border-radius:6px; }
+/* ─── Drag handle ─── */
+.composer-block-handle {
+  color: var(--c-ink-3);
+  cursor: grab;
+  user-select: none;
+  align-self: start;
+  padding: 8px 0 0;
+  font-size: 13px;
+  letter-spacing: -2px;
+  opacity: 0;
+  transition:
+    opacity var(--dur-med) var(--ease-out),
+    color   var(--dur-fast) var(--ease-out);
+  -webkit-user-drag: element;
+}
+.composer-block:hover .composer-block-handle,
+.composer-block:focus-within .composer-block-handle { opacity: 1; }
+.composer-block-handle:hover { color: var(--c-gold); }
+.composer-block-handle:active { cursor: grabbing; }
 
-/* Image-upload progress bar inside banner block. */
-.upload-bar { position:relative; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:6px; height:24px; margin:8px 0 4px; overflow:hidden; }
-.upload-bar-fill { position:absolute; top:0; left:0; bottom:0; background:linear-gradient(90deg, #C9A84C, #E6C066); transition:width .18s ease; }
-.upload-bar-label { position:relative; z-index:1; text-align:center; color:#000; font-size:.78rem; font-weight:bold; line-height:24px; mix-blend-mode:difference; }
+/* ─── Block body inputs ─── */
+.composer-block-body input,
+.composer-block-body textarea {
+  width: 100%;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  color: var(--c-ink);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: var(--lh-normal);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow   var(--dur-fast) var(--ease-out);
+}
+.composer-block-body input:focus,
+.composer-block-body textarea:focus {
+  outline: none;
+  border-color: var(--c-gold);
+  box-shadow: var(--shadow-focus);
+}
+.composer-block-body textarea {
+  font-family: inherit;
+  resize: vertical;
+  min-height: 72px;
+}
+.composer-block-body label {
+  display: block;
+  color: var(--c-ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: var(--lt-wide);
+  text-transform: uppercase;
+  margin: var(--sp-3) 0 6px;
+}
+.composer-block-body label:first-child { margin-top: 0; }
 
-.block-picker, .variable-picker { background:#111; border:1px solid #333; border-radius:8px; padding:4px; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,.4); opacity:0; transition:opacity .08s; max-height:80vh; overflow-y:auto; }
-.block-picker { opacity:1; min-width:180px; }
-.block-picker button, .variable-picker button { display:flex; gap:8px; width:100%; background:transparent; border:none; color:#ddd; padding:8px 10px; text-align:left; cursor:pointer; border-radius:4px; }
-.block-picker button:hover, .variable-picker button:hover { background:#2a2a2a; }
-.block-picker .icon { width:20px; color:#C9A84C; font-weight:bold; }
+/* ─── Block delete action ─── */
+.composer-block-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+.composer-block-actions button.composer-del {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  color: var(--c-ink-3);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--dur-fast) var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.composer-block:hover .composer-block-actions button.composer-del,
+.composer-block:focus-within .composer-block-actions button.composer-del { opacity: 1; }
+.composer-block-actions button.composer-del:hover {
+  background: rgba(226,109,99,0.1);
+  border-color: rgba(226,109,99,0.25);
+  color: var(--c-danger);
+}
 
-/* Rich-text contentEditable editor. Matches the look of input/textarea. */
-.rich-editor { min-height:72px; background:#0a0a0a; border:1px solid #2a2a2a; color:#eee; border-radius:6px; padding:8px 10px; outline:none; font:inherit; line-height:1.55; }
-.rich-editor.single-line { min-height:0; padding:8px 10px; }
-.rich-editor:focus { border-color:#C9A84C; }
-.rich-editor:empty::before { content:attr(data-placeholder); color:#555; pointer-events:none; }
-.rich-editor a { color:#C9A84C; text-decoration:underline; }
-.rich-editor strong, .rich-editor b { color:#fff; }
-.rich-editor em, .rich-editor i { color:#ddd; }
+/* ─── Add block button (full-width pill) ─── */
+.composer-add {
+  margin-top: var(--sp-3);
+  background: linear-gradient(180deg, var(--c-surface-2), var(--c-surface-1));
+  border: 1px dashed var(--c-border-mid);
+  color: var(--c-ink-2);
+  padding: var(--sp-3);
+  width: 100%;
+  border-radius: var(--r-md);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.composer-add::before {
+  content: "＋";
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-gold);
+  transition: transform var(--dur-med) var(--ease-out);
+}
+.composer-add:hover {
+  background: var(--c-surface-3);
+  border-color: var(--c-gold);
+  color: var(--c-ink);
+}
+.composer-add:hover::before { transform: rotate(90deg); }
+.composer-add:focus-visible { outline: none; box-shadow: var(--shadow-focus); }
 
-/* Floating format toolbar (appears on selection). */
-.format-toolbar { display:flex; gap:4px; background:#111; border:1px solid #333; border-radius:8px; padding:4px; z-index:10000; box-shadow:0 8px 24px rgba(0,0,0,.45); }
-.format-toolbar button { background:transparent; color:#ddd; border:none; cursor:pointer; padding:5px 10px; border-radius:4px; font-size:.95rem; min-width:30px; }
-.format-toolbar button:hover { background:#2a2a2a; color:#C9A84C; }
+/* ============================================================
+   RIGHT · Preview panel (paper + device frame)
+   ============================================================ */
+.composer-preview {
+  background: var(--c-surface-1);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-xl);
+  padding: var(--sp-4);
+  position: sticky;
+  top: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  resize: vertical;
+  overflow: auto;
+  min-height: 480px;
+  height: 640px;
+  max-height: calc(100vh - 120px);
+  box-shadow: var(--shadow-1);
+}
 
-@media (max-width:900px) {
-  .composer-wrap { grid-template-columns:1fr; }
-  .composer-preview { position:static; }
+.composer-preview-label {
+  color: var(--c-ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: var(--lt-wide);
+  text-transform: uppercase;
+  margin-bottom: var(--sp-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.composer-preview-label::before {
+  content: "● Live preview";
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--c-gold);
+}
+.composer-preview-label::after {
+  content: "Updates 250 ms after you pause";
+  color: var(--c-ink-3);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+  font-size: var(--fs-xs);
+}
+
+.composer-preview-frame {
+  flex: 1;
+  min-height: 0;
+  background: #EEEAE2;
+  border-radius: var(--r-md);
+  padding: var(--sp-2);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.composer-preview-frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #ffffff;
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-2);
+}
+
+/* ============================================================
+   Upload progress (inside banner block)
+   ============================================================ */
+.upload-bar {
+  position: relative;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  height: 26px;
+  margin: var(--sp-2) 0 var(--sp-1);
+  overflow: hidden;
+}
+.upload-bar-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: linear-gradient(90deg, var(--c-gold), var(--c-gold-bright));
+  transition: width var(--dur-med) var(--ease-out);
+  box-shadow: 0 0 12px var(--c-gold-glow);
+}
+.upload-bar-label {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: var(--c-ink-on-gold);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: var(--lt-wide);
+  line-height: 26px;
+  mix-blend-mode: difference;
+}
+
+/* ============================================================
+   Block + variable picker popovers
+   ============================================================ */
+.block-picker,
+.variable-picker {
+  background: var(--c-surface-1);
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--r-lg);
+  padding: var(--sp-1);
+  z-index: 9999;
+  box-shadow: var(--shadow-3);
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  transform: translateY(-4px);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.block-picker { opacity: 1; transform: none; min-width: 220px; }
+.block-picker button,
+.variable-picker button {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--c-ink);
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--fs-sm);
+  align-items: center;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.block-picker button:hover,
+.variable-picker button:hover {
+  background: var(--c-surface-3);
+}
+.block-picker button:focus-visible,
+.variable-picker button:focus-visible {
+  outline: none;
+  background: var(--c-surface-4);
+  box-shadow: inset 0 0 0 1px var(--c-gold);
+}
+.block-picker .icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-gold);
+  background: var(--c-gold-soft);
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.variable-picker button {
+  font-family: 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+  font-size: 12px;
+  color: var(--c-ink-2);
+}
+.variable-picker button:hover { color: var(--c-gold); }
+
+/* ============================================================
+   Rich text editor (contentEditable) + floating format toolbar
+   ============================================================ */
+.rich-editor {
+  min-height: 72px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  color: var(--c-ink);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  outline: none;
+  font: inherit;
+  font-size: var(--fs-md);
+  line-height: var(--lh-loose);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow   var(--dur-fast) var(--ease-out);
+}
+.rich-editor.single-line { min-height: 0; padding: 10px 12px; }
+.rich-editor:focus {
+  border-color: var(--c-gold);
+  box-shadow: var(--shadow-focus);
+}
+.rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--c-ink-3);
+  pointer-events: none;
+  font-style: italic;
+}
+.rich-editor a {
+  color: var(--c-gold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-thickness: 1px;
+}
+.rich-editor a:hover { color: var(--c-gold-bright); }
+.rich-editor strong, .rich-editor b { color: #fff; font-weight: 600; }
+.rich-editor em, .rich-editor i { color: var(--c-ink); }
+
+/* Floating format toolbar above selection */
+.format-toolbar {
+  display: flex;
+  gap: var(--sp-1);
+  background: var(--c-surface-1);
+  border: 1px solid var(--c-border-mid);
+  border-radius: var(--r-md);
+  padding: var(--sp-1);
+  z-index: 10000;
+  box-shadow: var(--shadow-3);
+}
+.format-toolbar button {
+  background: transparent;
+  color: var(--c-ink-2);
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: var(--fs-sm);
+  min-width: 32px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color      var(--dur-fast) var(--ease-out);
+}
+.format-toolbar button:hover {
+  background: var(--c-surface-3);
+  color: var(--c-gold);
+}
+.format-toolbar button:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--c-gold);
+}
+
+/* ============================================================
+   Heading block — inline size + format controls
+   ============================================================ */
+.composer-block-body .h-level {
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  color: var(--c-ink);
+  padding: 6px var(--sp-2);
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.composer-block-body .h-level:hover,
+.composer-block-body .h-level:focus { border-color: var(--c-gold); outline: none; }
+.composer-block-body .h-bold,
+.composer-block-body .h-italic {
+  width: 32px;
+  height: 30px;
+  background: var(--c-bg);
+  color: var(--c-ink-2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-sm);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.composer-block-body .h-bold { font-weight: 700; }
+.composer-block-body .h-italic { font-style: italic; }
+.composer-block-body .h-bold.active,
+.composer-block-body .h-italic.active {
+  background: var(--c-gold);
+  color: var(--c-ink-on-gold);
+  border-color: var(--c-gold);
+}
+.composer-block-body .h-bold:hover,
+.composer-block-body .h-italic:hover { border-color: var(--c-gold); }
+
+/* ============================================================
+   Accessibility: reduce motion on request
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .composer-block, .composer-add, .composer-add::before, .composer-block-handle,
+  .rich-editor, .format-toolbar, .block-picker, .variable-picker,
+  .composer-block-actions button.composer-del, .upload-bar-fill {
+    transition: none !important;
+    animation: none !important;
+  }
+  .composer-block.drop-above::before,
+  .composer-block.drop-below::after { animation: none !important; }
+}
+
+/* ============================================================
+   Responsive: stack below 980px
+   ============================================================ */
+@media (max-width: 980px) {
+  .composer-wrap { grid-template-columns: 1fr; gap: var(--sp-4); }
+  .composer-preview { position: static; height: auto; min-height: 400px; }
 }
