@@ -4,7 +4,7 @@ import type { Config } from '../config.js';
 
 export function registerAuthGuard(app: FastifyInstance, config: Config): void {
   app.addHook('preHandler', async (req: FastifyRequest, reply: FastifyReply) => {
-    if (!req.url.startsWith('/api/') || req.url.startsWith('/api/public/')) return;
+    if (!req.url.startsWith('/api/') || req.url.startsWith('/api/public/') || req.url.startsWith('/api/webhooks/')) return;
     const token = req.cookies['session'];
     if (!token) return reply.code(401).send({ error: 'no_session' });
     try {
