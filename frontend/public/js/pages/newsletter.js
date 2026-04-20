@@ -30,17 +30,15 @@ export default async function mount(root) {
     const list = filterByTab(newsletters);
     root.innerHTML = `
       <div dir="ltr" style="text-align:left">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-        <div>
-          <h2 style="color:var(--gold);margin:0">Newsletter</h2>
-          <p style="color:var(--silver);margin:4px 0 0;font-size:.9rem">
-            ${subCount.active.toLocaleString()} active · ${subCount.unsubscribed.toLocaleString()} unsubscribed
-          </p>
-        </div>
+      <div style="margin-bottom:14px">
+        <h2 style="color:var(--gold);margin:0">Newsletter</h2>
+        <p style="color:var(--silver);margin:4px 0 14px;font-size:.9rem">
+          ${subCount.active.toLocaleString()} active · ${subCount.unsubscribed.toLocaleString()} unsubscribed
+        </p>
         <button class="btn-primary" id="new-btn">+ New newsletter</button>
       </div>
 
-      <div class="tabs" style="margin:14px 0 18px">
+      <div class="tabs" style="margin:18px 0">
         ${['all', 'drafts', 'scheduled', 'sent'].map(t => `
           <button class="tab ${t === activeTab ? 'active' : ''}" data-tab="${t}">${t[0].toUpperCase() + t.slice(1)}</button>
         `).join('')}

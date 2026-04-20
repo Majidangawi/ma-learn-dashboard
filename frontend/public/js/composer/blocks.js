@@ -14,12 +14,17 @@ export const BLOCK_TYPES = {
   banner: {
     label: 'Banner image',
     icon: '🖼',
-    default: () => ({ type: 'banner', url: '', alt: '', link: '' }),
+    default: () => ({ type: 'banner', url: '', alt: '', link: '', visibleInPreview: true }),
   },
   cta: {
     label: 'CTA button',
     icon: '▢',
     default: () => ({ type: 'cta', label: '', url: '', color: 'gold' }),
+  },
+  quote: {
+    label: 'Quote / highlight',
+    icon: '❝',
+    default: () => ({ type: 'quote', text: '' }),
   },
   bullet_list: {
     label: 'Bullet list',
@@ -53,6 +58,14 @@ export function withIds(blocks) {
   return blocks.map(b => ({ ...b, __id: newId() }));
 }
 
+// Strip all underscore-prefixed keys — DOM id, transient upload state, etc.
+// Backend only sees the canonical Block fields.
 export function stripIds(blocks) {
-  return blocks.map(({ __id, ...b }) => b);
+  return blocks.map(b => {
+    const clean = {};
+    for (const [k, v] of Object.entries(b)) {
+      if (!k.startsWith('__')) clean[k] = v;
+    }
+    return clean;
+  });
 }

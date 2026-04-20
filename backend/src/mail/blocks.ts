@@ -1,8 +1,9 @@
 export type Block =
   | { type: 'text'; content: string }
   | { type: 'heading'; text: string }
-  | { type: 'banner'; url: string; alt: string; link?: string }
+  | { type: 'banner'; url: string; alt: string; link?: string; visibleInPreview?: boolean }
   | { type: 'cta'; label: string; url: string; color?: 'gold' | 'black' }
+  | { type: 'quote'; text: string }
   | { type: 'bullet_list'; items: string[] }
   | { type: 'divider' };
 
@@ -42,6 +43,10 @@ function renderBlock(block: Block, vars: Variables, isAR: boolean): string {
       const bg = color === 'gold' ? '#C9A84C' : '#0E0E0E';
       const fg = color === 'gold' ? '#0E0E0E' : '#ffffff';
       return `<p style="text-align:center;margin:22px 0;"><a href="${esc(block.url)}" style="display:inline-block;padding:12px 28px;background:${bg};color:${fg};text-decoration:none;border-radius:6px;font-weight:bold;">${esc(block.label)}</a></p>`;
+    }
+    case 'quote': {
+      const borderSide = isAR ? 'border-right' : 'border-left';
+      return `<div style="background:#f9f6f0;${borderSide}:3px solid #C9A84C;padding:18px 22px;margin:22px 0;border-radius:4px;"><p style="margin:0;color:#222;font-style:italic;">${substitute(esc(block.text), vars).replace(/\n/g, '<br>')}</p></div>`;
     }
     case 'bullet_list': {
       const padSide = isAR ? 'padding-right' : 'padding-left';

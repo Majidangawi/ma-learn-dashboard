@@ -12,10 +12,12 @@ const ROUTES = {
 
 export async function startRouter({ content, sidebar }) {
   async function render() {
-    const hash = location.hash.replace(/^#/, '') || 'home';
+    // Strip leading `#` and any following `/` so both `#newsletter` and
+    // `#/newsletter` route to the same page.
+    const hash = location.hash.replace(/^#\/?/, '') || 'home';
 
     // Parametric routes first. Today: #/newsletter/:id/stats.
-    const statsMatch = hash.match(/^\/?newsletter\/([^/]+)\/stats$/);
+    const statsMatch = hash.match(/^newsletter\/([^/]+)\/stats$/);
     if (statsMatch) {
       sidebar.setActive('newsletter');
       content.innerHTML = '<p style="color:var(--silver)">Loading…</p>';

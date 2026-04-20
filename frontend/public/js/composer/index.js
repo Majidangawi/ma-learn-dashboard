@@ -98,7 +98,29 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     }
 
     const fullHtml = header + bodyHtml;
-    previewEl.innerHTML = `<iframe sandbox srcdoc="${escapeAttr(`<!doctype html><html><body style='margin:0;background:#0E0E0E;padding:16px'>${fullHtml}</body></html>`)}"></iframe>`;
+    const srcdoc = escapeAttr(`<!doctype html><html><body style='margin:0;background:#0E0E0E;padding:16px' onload='parent.postMessage({type:"composer-preview-ready"},"*")'>${fullHtml}</body></html>`);
+
+    // Preserve the iframe's scroll position across re-renders so typing doesn't
+    // jump back to the top. We reuse the existing iframe when possible and
+    // capture scrollY before swapping srcdoc.
+    let iframe = previewEl.querySelector('iframe');
+    let savedScroll = 0;
+    try {
+      if (iframe && iframe.contentWindow) savedScroll = iframe.contentWindow.scrollY || 0;
+    } catch (_) { /* cross-origin-ish, ignore */ }
+
+    if (!iframe) {
+      previewEl.innerHTML = '';
+      iframe = document.createElement('iframe');
+      iframe.setAttribute('sandbox', 'allow-same-origin');
+      previewEl.appendChild(iframe);
+    }
+    iframe.srcdoc = srcdoc.replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+    // Restore scroll once the new doc has rendered.
+    iframe.addEventListener('load', function onLoad() {
+      iframe.removeEventListener('load', onLoad);
+      try { iframe.contentWindow.scrollTo(0, savedScroll); } catch (_) {}
+    });
   }
 
   function renderAll() {
@@ -128,17 +150,52 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     wrap.querySelector('.composer-block-body').appendChild(renderBlockForm(b));
     wrap.querySelector('.composer-del').onclick = () => { blocks.splice(i, 1); rebuild(); };
 
-    // Drag and drop reorder (lightweight, no lib)
+    // Drag + drop reorder. The drag handle (⋮⋮) is the draggable element; the
+    // whole block is the drop target. We show a gold indicator line above or
+    // below the target depending on whether the cursor is in the top or bottom
+    // half of the hovered block.
     const handle = wrap.querySelector('.composer-block-handle');
     handle.draggable = true;
-    handle.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', String(i)); });
-    wrap.addEventListener('dragover', (e) => e.preventDefault());
+    handle.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', String(i));
+      e.dataTransfer.effectAllowed = 'move';
+      wrap.classList.add('dragging');
+    });
+    handle.addEventListener('dragend', () => {
+      wrap.classList.remove('dragging');
+      blocksEl.querySelectorAll('.drop-above, .drop-below').forEach(el => {
+        el.classList.remove('drop-above', 'drop-below');
+      });
+    });
+    wrap.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const rect = wrap.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const above = e.clientY < mid;
+      blocksEl.querySelectorAll('.drop-above, .drop-below').forEach(el => {
+        if (el !== wrap) el.classList.remove('drop-above', 'drop-below');
+      });
+      wrap.classList.toggle('drop-above', above);
+      wrap.classList.toggle('drop-below', !above);
+    });
+    wrap.addEventListener('dragleave', (e) => {
+      // Only clear when leaving the wrap entirely, not when moving between
+      // inner children (relatedTarget is outside the wrap).
+      if (!wrap.contains(e.relatedTarget)) {
+        wrap.classList.remove('drop-above', 'drop-below');
+      }
+    });
     wrap.addEventListener('drop', (e) => {
       e.preventDefault();
       const from = Number(e.dataTransfer.getData('text/plain'));
-      if (from === i) return;
+      const insertAbove = wrap.classList.contains('drop-above');
+      wrap.classList.remove('drop-above', 'drop-below');
+      if (Number.isNaN(from) || from === i) return;
       const [moved] = blocks.splice(from, 1);
-      blocks.splice(i, 0, moved);
+      // After removing `from`, target index shifts down by 1 if from < i.
+      let insertAt = from < i ? i - 1 : i;
+      if (!insertAbove) insertAt += 1;
+      blocks.splice(insertAt, 0, moved);
       rebuild();
     });
     return wrap;
@@ -176,38 +233,51 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
         break;
       }
       case 'banner': {
+        const showToggleId = `show-pv-${b.__id}`;
+        const progress = b.__upload && b.__upload.status === 'uploading'
+          ? `<div class="upload-bar"><div class="upload-bar-fill" style="width:${b.__upload.progress || 0}%"></div><div class="upload-bar-label">Uploading ${Math.round(b.__upload.progress || 0)}%</div></div>`
+          : '';
+        const errorMsg = b.__upload && b.__upload.status === 'error'
+          ? `<div style="color:#ff6b6b;font-size:.82rem;margin:6px 0;">Upload failed: ${escapeHtml(b.__upload.error || '')}</div>`
+          : '';
         el.innerHTML = `
           <label>Image URL or Upload</label>
           <div style="display:flex;gap:8px;align-items:center">
             <input class="b-url" placeholder="https://..." value="${escapeAttr(b.url)}" style="flex:1" />
             <input type="file" accept="image/*" class="b-file" style="display:none" />
-            <button type="button" class="b-upload btn-ghost">Upload</button>
+            <button type="button" class="b-upload btn-ghost" ${b.__upload && b.__upload.status === 'uploading' ? 'disabled' : ''}>${b.__upload && b.__upload.status === 'uploading' ? 'Uploading…' : 'Upload'}</button>
           </div>
-          <label>Alt text</label>
+          ${progress}${errorMsg}
+          <label title="Shown to screen readers + shown instead of the image when the email client blocks images (Gmail does this by default). Keep it short + descriptive.">Alt text <span style="color:#888;font-size:.8rem;">(for screen readers + image-blocked inboxes)</span></label>
           <input class="b-alt" value="${escapeAttr(b.alt)}" placeholder="Short description" />
-          <label>Optional link</label>
-          <input class="b-link" value="${escapeAttr(b.link || '')}" placeholder="https://..." />`;
+          <label>Optional link (wraps image)</label>
+          <input class="b-link" value="${escapeAttr(b.link || '')}" placeholder="https://..." />
+          <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer">
+            <input type="checkbox" id="${showToggleId}" ${b.visibleInPreview === false ? '' : 'checked'} style="width:auto" />
+            <span style="color:#ccc;font-size:.85rem;">Show in live preview (the image still sends in the email either way)</span>
+          </label>`;
         el.querySelector('.b-url').oninput = (e) => { b.url = e.target.value; emit(); };
         el.querySelector('.b-alt').oninput = (e) => { b.alt = e.target.value; emit(); };
         el.querySelector('.b-link').oninput = (e) => { b.link = e.target.value; emit(); };
+        el.querySelector(`#${showToggleId}`).onchange = (e) => {
+          b.visibleInPreview = e.target.checked;
+          emit();
+        };
         el.querySelector('.b-upload').onclick = () => el.querySelector('.b-file').click();
-        el.querySelector('.b-file').onchange = async (e) => {
+        el.querySelector('.b-file').onchange = (e) => {
           const file = e.target.files[0];
           if (!file) return;
-          const msg = document.createElement('span');
-          msg.textContent = 'Uploading…';
-          el.appendChild(msg);
-          try {
-            const { url } = await uploadImage(file);
-            b.url = url;
-            el.querySelector('.b-url').value = url;
-            emit();
-          } catch (err) {
-            msg.textContent = 'Upload failed: ' + err.message;
-            return;
-          }
-          msg.remove();
+          startUpload(b, file);
         };
+        break;
+      }
+      case 'quote': {
+        const ta = document.createElement('textarea');
+        ta.rows = 3; ta.dir = lang === 'AR' ? 'rtl' : 'ltr';
+        ta.placeholder = 'A quote or emphasized line. Renders in a gold-accent box.';
+        ta.value = b.text;
+        ta.oninput = () => { b.text = ta.value; emit(); };
+        el.appendChild(ta);
         break;
       }
       case 'cta': {
@@ -246,14 +316,33 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     const rect = targetTextarea.getBoundingClientRect();
     const pop = document.createElement('div');
     pop.className = 'variable-picker';
-    pop.style.position = 'absolute';
-    pop.style.top = `${window.scrollY + rect.top - 10}px`;
-    pop.style.left = `${window.scrollX + rect.left + 100}px`;
+    pop.style.position = 'fixed';
     pop.innerHTML = VARIABLES.map(v => `<button type="button" data-k="${v.key}">{${v.key}} · ${v.label}</button>`).join('');
     document.body.appendChild(pop);
-    const close = () => { document.removeEventListener('click', onDoc); pop.remove(); };
+
+    // Clamp to viewport after measuring.
+    const popH = pop.offsetHeight;
+    const popW = pop.offsetWidth;
+    let top = rect.top - 10;
+    if (top + popH > window.innerHeight - 12) top = window.innerHeight - popH - 12;
+    if (top < 12) top = 12;
+    let left = rect.left + 100;
+    if (left + popW > window.innerWidth - 12) left = window.innerWidth - popW - 12;
+    if (left < 12) left = 12;
+    pop.style.top = `${top}px`;
+    pop.style.left = `${left}px`;
+
+    const close = () => {
+      document.removeEventListener('click', onDoc);
+      document.removeEventListener('keydown', onKey);
+      pop.remove();
+    };
     const onDoc = (e) => { if (!pop.contains(e.target)) close(); };
-    setTimeout(() => document.addEventListener('click', onDoc), 0);
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    setTimeout(() => {
+      document.addEventListener('click', onDoc);
+      document.addEventListener('keydown', onKey);
+    }, 0);
     pop.addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-k]');
       if (!btn) return;
@@ -262,23 +351,75 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     });
   }
 
-  async function uploadImage(file) {
-    const dataBase64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(String(r.result).split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-    const res = await fetch(API_BASE + '/api/writes/upload_email_image', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 }),
-    });
-    if (!res.ok) {
-      const body = await res.text().catch(() => '');
-      throw new Error(`http_${res.status}: ${body.slice(0, 120)}`);
-    }
-    return res.json();
+  // Start an image upload on a block. Tracks progress on the block's `__upload`
+  // field so the progress bar survives DOM rebuilds (e.g. user adds another
+  // block mid-upload). On success, updates b.url + triggers preview refresh.
+  function startUpload(b, file) {
+    b.__upload = { status: 'reading', progress: 0 };
+    renderAll(); // reflect initial state
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataBase64 = String(reader.result).split(',')[1];
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', API_BASE + '/api/writes/upload_email_image', true);
+      xhr.withCredentials = true;
+      xhr.setRequestHeader('Content-Type', 'application/json');
+
+      // upload.onprogress fires during POST body send — tracks real bytes sent.
+      xhr.upload.onprogress = (e) => {
+        if (!e.lengthComputable) return;
+        b.__upload = { status: 'uploading', progress: Math.round((e.loaded / e.total) * 100) };
+        refreshBlockOnly(b);
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const json = JSON.parse(xhr.responseText);
+            b.url = json.url;
+            delete b.__upload;
+            renderAll(); // full rebuild to refresh url input + preview
+            emit();
+          } catch (err) {
+            b.__upload = { status: 'error', error: 'Bad server response' };
+            renderAll();
+          }
+        } else {
+          let msg = `HTTP ${xhr.status}`;
+          try { msg = JSON.parse(xhr.responseText).error || msg; } catch (_) {}
+          if (xhr.status === 413) msg = 'File too large (max 8 MB). Try compressing or use an image URL.';
+          b.__upload = { status: 'error', error: msg };
+          renderAll();
+        }
+      };
+
+      xhr.onerror = () => {
+        b.__upload = { status: 'error', error: 'Network error' };
+        renderAll();
+      };
+
+      b.__upload = { status: 'uploading', progress: 0 };
+      renderAll();
+      xhr.send(JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 }));
+    };
+    reader.onerror = () => {
+      b.__upload = { status: 'error', error: 'Could not read file' };
+      renderAll();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Update just one block's form DOM (used during upload progress ticks to avoid
+  // destroying other blocks' input focus on every progress event).
+  function refreshBlockOnly(b) {
+    const existing = blocksEl.querySelector(`[data-id="${b.__id}"]`);
+    if (!existing) return;
+    const idx = blocks.indexOf(b);
+    if (idx < 0) return;
+    const fresh = renderBlock(b, idx);
+    existing.replaceWith(fresh);
   }
 
   addBtn.addEventListener('click', () => {

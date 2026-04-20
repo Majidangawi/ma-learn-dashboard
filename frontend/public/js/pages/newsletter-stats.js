@@ -24,8 +24,9 @@ export default async function mount(root, params) {
   const pct = (n) => nl.recipientCount ? ((Number(n || 0) / Number(nl.recipientCount)) * 100).toFixed(1) : '0.0';
 
   root.innerHTML = `
+    <div dir="ltr" style="text-align:left">
     <div style="margin-bottom:14px">
-      <a href="#/newsletter" style="color:var(--silver);text-decoration:none">← Back to newsletters</a>
+      <a href="#newsletter" style="color:var(--silver);text-decoration:none">← Back to newsletters</a>
     </div>
     <h2 style="color:var(--gold);margin:0 0 4px">${escapeHtml(nl.subject || 'Untitled')}</h2>
     <p style="color:var(--silver);margin:4px 0 24px;font-size:.9rem">
@@ -54,12 +55,33 @@ export default async function mount(root, params) {
     </p>
 
     <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn-primary" id="edit-btn" title="Sent newsletters are immutable. This clones the content into a new editable draft.">Edit as new draft</button>
       <button class="btn-ghost" id="clone-btn">Clone</button>
-      <button class="btn-primary" id="resend-btn">Resend to non-openers</button>
+      <button class="btn-ghost" id="resend-btn">Resend to non-openers</button>
     </div>
-    <div id="stats-msg" style="color:var(--silver);margin-top:10px;font-size:.9rem"></div>`;
+    <div id="stats-msg" style="color:var(--silver);margin-top:10px;font-size:.9rem"></div>
+    </div>`;
 
   const msg = document.getElementById('stats-msg');
+
+  document.getElementById('edit-btn').onclick = async () => {
+    msg.textContent = 'Creating editable draft…';
+    try {
+      const r = await api('/api/writes/newsletter/clone', {
+        method: 'POST',
+        body: JSON.stringify({ newsletterId: id }),
+      });
+      if (r.ok) {
+        msg.textContent = 'Draft created — opening editor…';
+        // Go back to the newsletter list; the new draft will show in Drafts tab.
+        window.location.hash = '#newsletter';
+      } else {
+        msg.textContent = `Error: ${r.error || 'unknown'}`;
+      }
+    } catch (e) {
+      msg.textContent = `Error: ${e.message}`;
+    }
+  };
 
   document.getElementById('clone-btn').onclick = async () => {
     msg.textContent = 'Cloning…';
@@ -70,7 +92,7 @@ export default async function mount(root, params) {
       });
       if (r.ok) {
         msg.textContent = 'Cloned — redirecting…';
-        window.location.hash = '#/newsletter';
+        window.location.hash = '#newsletter';
       } else {
         msg.textContent = `Error: ${r.error || 'unknown'}`;
       }
@@ -89,7 +111,7 @@ export default async function mount(root, params) {
       });
       if (r.ok) {
         msg.textContent = 'Draft created — redirecting…';
-        window.location.hash = '#/newsletter';
+        window.location.hash = '#newsletter';
       } else {
         msg.textContent = `Error: ${r.error || 'unknown'}`;
       }

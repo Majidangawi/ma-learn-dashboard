@@ -17,10 +17,12 @@ const Body = z.object({
   dataBase64: z.string().min(1),
 });
 
-const MAX_BYTES = 5_000_000;
+// 8 MB cap — covers most raw phone photos (5–8 MB). Base64 adds ~33% overhead,
+// so the route-level bodyLimit below must allow ~12 MB of JSON.
+const MAX_BYTES = 8_000_000;
 
 const plugin: FastifyPluginAsync<WritesUploadOpts> = async (app, opts) => {
-  app.post('/api/writes/upload_email_image', async (req, reply) => {
+  app.post('/api/writes/upload_email_image', { bodyLimit: 12_000_000 }, async (req, reply) => {
     const user = opts.requireAuth(req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
 

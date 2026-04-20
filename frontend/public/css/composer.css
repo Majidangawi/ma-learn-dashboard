@@ -1,11 +1,20 @@
-.composer-wrap { display:grid; grid-template-columns: 1fr 1fr; gap:18px; }
+.composer-wrap { display:grid; grid-template-columns: 1fr 1fr; gap:18px; align-items:start; }
 .composer-panel { background:var(--surface); padding:14px; border-radius:10px; min-height:400px; }
 .composer-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; color:var(--silver); font-size:.9rem; }
 .composer-toolbar select { background:#111; border:1px solid #333; color:#eee; padding:4px 8px; border-radius:6px; }
 .composer-blocks { display:flex; flex-direction:column; gap:8px; }
-.composer-block { background:#0E0E0E; border:1px solid #222; border-radius:8px; padding:10px; display:grid; grid-template-columns:28px 1fr 28px; gap:10px; }
-.composer-block-handle { color:#666; cursor:grab; user-select:none; align-self:start; padding-top:6px; }
+.composer-block { background:#0E0E0E; border:1px solid #222; border-radius:8px; padding:10px; display:grid; grid-template-columns:28px 1fr 28px; gap:10px; position:relative; transition:border-color .12s; }
+.composer-block.dragging { opacity:.4; }
+.composer-block.drop-above::before,
+.composer-block.drop-below::after {
+  content:""; position:absolute; left:6px; right:6px; height:3px; background:#C9A84C;
+  border-radius:3px; box-shadow:0 0 12px rgba(201,168,76,.6); pointer-events:none;
+}
+.composer-block.drop-above::before { top:-5px; }
+.composer-block.drop-below::after { bottom:-5px; }
+.composer-block-handle { color:#666; cursor:grab; user-select:none; align-self:start; padding-top:6px; font-size:1.1rem; }
 .composer-block-handle:active { cursor:grabbing; }
+.composer-block:hover .composer-block-handle { color:#C9A84C; }
 .composer-block-body input, .composer-block-body textarea { width:100%; background:#0a0a0a; border:1px solid #2a2a2a; color:#eee; border-radius:6px; padding:8px; font:inherit; }
 .composer-block-body textarea { font-family:inherit; resize:vertical; }
 .composer-block-body label { display:block; color:#888; font-size:.8rem; margin:8px 0 2px; }
@@ -13,11 +22,27 @@
 .composer-block-actions button.composer-del:hover { color:#f55; }
 .composer-add { margin-top:10px; background:#1a1a1a; border:1px dashed #333; color:#aaa; padding:10px; width:100%; border-radius:8px; cursor:pointer; }
 .composer-add:hover { background:#222; color:#fff; }
-.composer-preview { background:#0a0a0a; border:1px solid #222; border-radius:10px; padding:10px; min-height:400px; }
-.composer-preview-label { color:var(--silver); font-size:.8rem; margin-bottom:8px; }
-.composer-preview-frame iframe { width:100%; min-height:400px; border:none; background:#fff; border-radius:6px; }
-.block-picker, .variable-picker { background:#111; border:1px solid #333; border-radius:8px; padding:4px; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,.4); }
+
+/* Preview pane is vertically resizable. Starts 560px, user can drag the
+   bottom-right corner to extend it as the email grows. Position sticky keeps
+   it in view while scrolling the block list. */
+.composer-preview { background:#0a0a0a; border:1px solid #222; border-radius:10px; padding:10px; position:sticky; top:10px; display:flex; flex-direction:column; resize:vertical; overflow:auto; min-height:400px; height:560px; max-height:calc(100vh - 120px); }
+.composer-preview-label { color:var(--silver); font-size:.8rem; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center; }
+.composer-preview-frame { flex:1; min-height:0; }
+.composer-preview-frame iframe { width:100%; height:100%; border:none; background:#fff; border-radius:6px; }
+
+/* Image-upload progress bar inside banner block. */
+.upload-bar { position:relative; background:#1a1a1a; border:1px solid #2a2a2a; border-radius:6px; height:24px; margin:8px 0 4px; overflow:hidden; }
+.upload-bar-fill { position:absolute; top:0; left:0; bottom:0; background:linear-gradient(90deg, #C9A84C, #E6C066); transition:width .18s ease; }
+.upload-bar-label { position:relative; z-index:1; text-align:center; color:#000; font-size:.78rem; font-weight:bold; line-height:24px; mix-blend-mode:difference; }
+
+.block-picker, .variable-picker { background:#111; border:1px solid #333; border-radius:8px; padding:4px; z-index:9999; box-shadow:0 8px 24px rgba(0,0,0,.4); opacity:0; transition:opacity .08s; max-height:80vh; overflow-y:auto; }
+.block-picker { opacity:1; min-width:180px; }
 .block-picker button, .variable-picker button { display:flex; gap:8px; width:100%; background:transparent; border:none; color:#ddd; padding:8px 10px; text-align:left; cursor:pointer; border-radius:4px; }
 .block-picker button:hover, .variable-picker button:hover { background:#2a2a2a; }
 .block-picker .icon { width:20px; color:#C9A84C; font-weight:bold; }
-@media (max-width:900px) { .composer-wrap { grid-template-columns:1fr; } }
+
+@media (max-width:900px) {
+  .composer-wrap { grid-template-columns:1fr; }
+  .composer-preview { position:static; }
+}
