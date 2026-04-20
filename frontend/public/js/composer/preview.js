@@ -82,11 +82,11 @@ function renderBlock(block, vars, isAR) {
     }
     case 'quote': {
       const borderSide = isAR ? 'border-right' : 'border-left';
-      return `<div style="background:#f9f6f0;${borderSide}:3px solid #C9A84C;padding:18px 22px;margin:22px 0;border-radius:4px;"><p style="margin:0;color:#222;font-style:italic;">${substitute(esc(block.text), vars).replace(/\n/g, '<br>')}</p></div>`;
+      return `<div style="background:#f9f6f0;${borderSide}:3px solid #C9A84C;padding:18px 22px;margin:22px 0;border-radius:4px;"><p style="margin:0;color:#222;font-style:italic;">${substituteInHtml(sanitizeInlineHtml(block.text || ''), vars || {})}</p></div>`;
     }
     case 'bullet_list': {
       const padSide = isAR ? 'padding-right' : 'padding-left';
-      const items = (block.items || []).filter(Boolean).map(i => `<li style="padding:4px 0;color:#444;">${substitute(esc(i), vars)}</li>`).join('');
+      const items = (block.items || []).filter(Boolean).map(i => `<li style="padding:4px 0;color:#444;">${substituteInHtml(sanitizeInlineHtml(i || ''), vars || {})}</li>`).join('');
       return `<ul style="margin:16px 0;${padSide}:22px;list-style:disc;">${items}</ul>`;
     }
     case 'divider':

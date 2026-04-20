@@ -47,7 +47,7 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
           </label>
         </div>
         <div class="composer-blocks"></div>
-        <button type="button" class="composer-add">＋ Add block</button>
+        <button type="button" class="composer-add">Add block</button>
       </div>
       <div class="composer-preview">
         <div class="composer-preview-label">Live preview</div>
@@ -291,12 +291,14 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
         break;
       }
       case 'quote': {
-        const ta = document.createElement('textarea');
-        ta.rows = 3; ta.dir = lang === 'AR' ? 'rtl' : 'ltr';
-        ta.placeholder = 'A quote or emphasized line. Renders in a gold-accent box.';
-        ta.value = b.text;
-        ta.oninput = () => { b.text = ta.value; emit(); };
-        el.appendChild(ta);
+        const editor = makeRichEditor({
+          html: b.text || '',
+          dir: lang === 'AR' ? 'rtl' : 'ltr',
+          placeholder: 'A quote or emphasized line. Renders in a gold-accent box. Use B / I / link above to format.',
+          onChange: (html) => { b.text = html; emit(); },
+          onSlash: (ta) => openVariablePicker(ta, (key) => insertTextAtCursor(ta, `{${key}}`, (h) => { b.text = h; emit(); })),
+        });
+        el.appendChild(editor);
         break;
       }
       case 'cta': {
@@ -316,12 +318,38 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
         break;
       }
       case 'bullet_list': {
-        const ta = document.createElement('textarea');
-        ta.rows = 4; ta.dir = lang === 'AR' ? 'rtl' : 'ltr';
-        ta.placeholder = 'One item per line';
-        ta.value = (b.items || []).join('\n');
-        ta.oninput = () => { b.items = ta.value.split('\n'); emit(); };
-        el.appendChild(ta);
+        // Items stored as array of HTML strings. The editor renders them
+        // joined by <br> so the user sees one item per line; on save we split
+        // back to an array. Each item can carry inline bold/italic/link.
+        const joined = (b.items || []).join('<br>');
+        const editor = makeRichEditor({
+          html: joined,
+          dir: lang === 'AR' ? 'rtl' : 'ltr',
+          placeholder: 'One item per line. Use B / I / link above to format an item.',
+          onChange: (html) => {
+            // Split on <br>, <div>, or </p> so Enter-created line breaks are
+            // treated as new items regardless of which tag the browser chose.
+            const parts = String(html)
+              .replace(/<\/div>\s*<div[^>]*>/gi, '<br>')
+              .replace(/<div[^>]*>/gi, '')
+              .replace(/<\/div>/gi, '')
+              .replace(/<\/p>\s*<p[^>]*>/gi, '<br>')
+              .replace(/<p[^>]*>/gi, '')
+              .replace(/<\/p>/gi, '')
+              .split(/<br\s*\/?>/i)
+              .map(s => s.trim())
+              .filter(Boolean);
+            b.items = parts;
+            emit();
+          },
+          onSlash: (ta) => openVariablePicker(ta, (key) => insertTextAtCursor(ta, `{${key}}`, (h) => {
+            // Parse new items from current editor HTML
+            const parts = String(h).split(/<br\s*\/?>/i).map(s => s.trim()).filter(Boolean);
+            b.items = parts;
+            emit();
+          })),
+        });
+        el.appendChild(editor);
         break;
       }
       case 'divider':

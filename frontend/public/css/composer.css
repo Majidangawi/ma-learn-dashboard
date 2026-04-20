@@ -411,22 +411,30 @@
 
 /* ============================================================
    Block + variable picker popovers
+   Strong elevation so the menu reads clearly as a lifted card
+   (not "floating" on the modal underneath).
    ============================================================ */
 .block-picker,
 .variable-picker {
-  background: var(--c-surface-1);
-  border: 1px solid var(--c-border-mid);
+  background: #1C1C22;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--r-lg);
-  padding: var(--sp-1);
+  padding: var(--sp-2);
   z-index: 9999;
-  box-shadow: var(--shadow-3);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 28px 64px rgba(0, 0, 0, 0.75),
+    0 6px 18px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   opacity: 0;
   transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
   transform: translateY(-4px);
   max-height: 80vh;
   overflow-y: auto;
 }
-.block-picker { opacity: 1; transform: none; min-width: 220px; }
+.block-picker { opacity: 1; transform: none; min-width: 240px; }
 .block-picker button,
 .variable-picker button {
   display: flex;
@@ -492,14 +500,15 @@
   box-shadow: var(--shadow-focus);
 }
 
-/* Persistent toolbar at top of rich editor */
+/* Persistent toolbar at top of rich editor — stronger contrast so it's
+   clearly a control bar, not part of the text area. */
 .rich-editor-bar {
   display: flex;
   align-items: center;
   gap: 2px;
-  padding: 4px;
-  background: var(--c-surface-2);
-  border-bottom: 1px solid var(--c-border);
+  padding: 5px 6px;
+  background: linear-gradient(180deg, #26262E, #1D1D24);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: calc(var(--r-md) - 1px) calc(var(--r-md) - 1px) 0 0;
   flex-wrap: wrap;
 }
