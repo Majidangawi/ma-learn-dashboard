@@ -1,3 +1,4 @@
+import { google } from 'googleapis';
 import type { SheetsClient } from './sheets-client.js';
 
 export interface Customer {
@@ -44,4 +45,42 @@ export function parseCustomers(rows: string[][] | undefined): Customer[] {
 export async function readCustomers(sheets: SheetsClient, sheetId: string): Promise<Customer[]> {
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: 'Customers' });
   return parseCustomers(res.data.values as string[][] | undefined);
+}
+
+/**
+ * Generic tab reader. Returns each row as an object keyed by the header row.
+ * Builds its own Sheets client from env vars so it can be called from scripts
+ * and data modules without plumbing a client through.
+ *
+ * Required env: SHEET_ID, BACKEND_OAUTH_CLIENT_ID, BACKEND_OAUTH_CLIENT_SECRET,
+ *               BACKEND_OAUTH_REFRESH_TOKEN.
+ */
+export type SheetRow = Record<string, string>;
+
+export async function readSheet(opts: { tab: string }): Promise<SheetRow[]> {
+  const clientId = process.env.BACKEND_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.BACKEND_OAUTH_CLIENT_SECRET;
+  const refresh = process.env.BACKEND_OAUTH_REFRESH_TOKEN;
+  const sheetId = process.env.SHEET_ID;
+  if (!clientId || !clientSecret || !refresh || !sheetId) {
+    throw new Error('readSheet: missing env (SHEET_ID / BACKEND_OAUTH_*)');
+  }
+  const oauth = new google.auth.OAuth2(clientId, clientSecret);
+  oauth.setCredentials({ refresh_token: refresh });
+  const sheets = google.sheets({ version: 'v4', auth: oauth });
+  const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: opts.tab });
+  const values = (res.data.values ?? []) as string[][];
+  return rowsToObjects(values);
+}
+
+export function rowsToObjects(values: string[][] | undefined): SheetRow[] {
+  if (!values || values.length < 2) return [];
+  const [header, ...rows] = values;
+  return rows.map(r => {
+    const o: SheetRow = {};
+    for (let i = 0; i < header.length; i++) {
+      o[header[i]!] = r[i] ?? '';
+    }
+    return o;
+  });
 }
