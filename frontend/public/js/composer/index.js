@@ -43,10 +43,17 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
   const addBtn = root.querySelector('.composer-add');
   const langSel = root.querySelector('.composer-lang');
 
+  // emit() = data changed, preview + onChange must refresh, but DO NOT rebuild
+  // the block DOM (that kills input focus mid-typing). renderAll() is only
+  // called on structural edits (add/remove/reorder block).
+  let previewTimer = null;
   function emit() {
     const clean = stripIds(blocks);
     onChange && onChange(clean);
-    renderAll();
+    // Debounce preview re-render so typing stays snappy and the iframe doesn't
+    // thrash on every keystroke.
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(renderPreviewPane, 250);
   }
 
   function renderPreviewPane() {
@@ -58,6 +65,13 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     blocksEl.innerHTML = '';
     blocks.forEach((b, i) => blocksEl.appendChild(renderBlock(b, i)));
     renderPreviewPane();
+  }
+
+  // Full rebuild after structural change (add/remove/reorder).
+  function rebuild() {
+    const clean = stripIds(blocks);
+    onChange && onChange(clean);
+    renderAll();
   }
 
   function renderBlock(b, i) {
@@ -72,7 +86,7 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
         <button type="button" class="composer-del" title="Delete block">×</button>
       </div>`;
     wrap.querySelector('.composer-block-body').appendChild(renderBlockForm(b));
-    wrap.querySelector('.composer-del').onclick = () => { blocks.splice(i, 1); emit(); };
+    wrap.querySelector('.composer-del').onclick = () => { blocks.splice(i, 1); rebuild(); };
 
     // Drag and drop reorder (lightweight, no lib)
     const handle = wrap.querySelector('.composer-block-handle');
@@ -85,7 +99,7 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
       if (from === i) return;
       const [moved] = blocks.splice(from, 1);
       blocks.splice(i, 0, moved);
-      emit();
+      rebuild();
     });
     return wrap;
   }
@@ -227,13 +241,13 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
   addBtn.addEventListener('click', () => {
     openBlockPicker(addBtn, (newBlock) => {
       blocks.push({ ...newBlock, __id: newId() });
-      emit();
+      rebuild();
     });
   });
 
   langSel.addEventListener('change', () => {
     lang = langSel.value;
-    emit();
+    rebuild();
   });
 
   renderAll();
