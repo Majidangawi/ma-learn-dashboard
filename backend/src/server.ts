@@ -17,6 +17,7 @@ import newslettersRoute from './routes/newsletters.js';
 import { registerAuthGuard } from './auth/middleware.js';
 import { makeEmailAssetsUploader } from './drive/upload.js';
 import { createAppsScriptClient } from './apps-script/client.js';
+import { startScheduler } from './workers/scheduler.js';
 
 export async function buildServer() {
   const config = loadConfig();
@@ -110,6 +111,13 @@ export async function buildServer() {
   // Brevo, so we register whenever a SHEET_ID is configured.
   if (config.SHEET_ID) {
     await app.register(newsletterWelcomeRoute, { config });
+  }
+
+  // Cron tick for scheduled newsletter sends. Needs the same Sheets + Apps
+  // Script plumbing as the newsletter routes, so gate on the same config and
+  // skip under vitest to keep test runs deterministic.
+  if (config.SHEET_ID && config.APPS_SCRIPT_URL && !process.env.VITEST) {
+    startScheduler(appsScript);
   }
 
   return app;
