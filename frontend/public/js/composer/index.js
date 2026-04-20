@@ -208,7 +208,7 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
         const editor = makeRichEditor({
           html: b.content || '',
           dir: lang === 'AR' ? 'rtl' : 'ltr',
-          placeholder: 'Type text. Select a word + use the floating toolbar for bold / italic / link. Type / for variables.',
+          placeholder: 'Type text. Use the B / I / link buttons above to format.',
           onChange: (html) => { b.content = html; emit(); },
           onSlash: (ta) => openVariablePicker(ta, (key) => insertTextAtCursor(ta, `{${key}}`, (h) => { b.content = h; emit(); })),
         });
@@ -331,10 +331,28 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     return el;
   }
 
-  // Rich-text contentEditable editor. Returns the DOM node to mount.
-  // Floating toolbar (B / I / 🔗) appears above a selection when the user
-  // highlights text inside this editor. `/` triggers the variable picker.
+  // Rich-text contentEditable editor. Returns a wrapper element containing:
+  // (1) a persistent format toolbar (B / I / U / 🔗 / unlink / variable pill)
+  // (2) the contentEditable div itself
+  // Toolbar is always visible so formatting affordances are discoverable.
   function makeRichEditor({ html, dir, placeholder, onChange, onSlash, singleLine }) {
+    const wrap = document.createElement('div');
+    wrap.className = 'rich-editor-wrap';
+
+    // Persistent format toolbar.
+    const bar = document.createElement('div');
+    bar.className = 'rich-editor-bar';
+    bar.innerHTML = `
+      <button type="button" data-cmd="bold" title="Bold (Cmd+B)"><b>B</b></button>
+      <button type="button" data-cmd="italic" title="Italic (Cmd+I)"><i>I</i></button>
+      <button type="button" data-cmd="underline" title="Underline"><span style="text-decoration:underline">U</span></button>
+      <span class="rich-editor-bar-sep"></span>
+      <button type="button" data-cmd="link" title="Embed link (select text first)">🔗 Link</button>
+      <button type="button" data-cmd="unlink" title="Remove link">⌀</button>
+      <span class="rich-editor-bar-sep"></span>
+      <button type="button" data-cmd="variable" title="Insert variable (or type /)">{ } Variable</button>`;
+    wrap.appendChild(bar);
+
     const ed = document.createElement('div');
     ed.className = 'rich-editor' + (singleLine ? ' single-line' : '');
     ed.contentEditable = 'true';
@@ -344,6 +362,47 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     // the browser handle editing. DON'T re-set it on every keystroke; that
     // wipes the caret.
     ed.innerHTML = html || '';
+    wrap.appendChild(ed);
+
+    // Keep selection when clicking a toolbar button (default mousedown would
+    // move focus off the editor and collapse the selection first).
+    bar.addEventListener('mousedown', (e) => e.preventDefault());
+    bar.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-cmd]');
+      if (!btn) return;
+      const cmd = btn.dataset.cmd;
+      ed.focus();
+      if (cmd === 'link') {
+        const url = prompt('Link URL (include https://):');
+        if (url) {
+          document.execCommand('createLink', false, url);
+          const sel = window.getSelection();
+          if (sel && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.tagName === 'A') {
+            sel.anchorNode.parentElement.setAttribute('target', '_blank');
+            sel.anchorNode.parentElement.setAttribute('rel', 'noopener');
+          }
+        }
+      } else if (cmd === 'unlink') {
+        document.execCommand('unlink');
+      } else if (cmd === 'variable') {
+        onSlash && onSlash(ed);
+        return;
+      } else {
+        document.execCommand(cmd);
+      }
+      // execCommand mutates innerHTML but doesn't always fire input — nudge it.
+      onChange && onChange(ed.innerHTML);
+      updateBarState();
+    });
+
+    function updateBarState() {
+      ['bold', 'italic', 'underline'].forEach((cmd) => {
+        const btn = bar.querySelector(`[data-cmd="${cmd}"]`);
+        if (!btn) return;
+        const active = document.queryCommandState && document.queryCommandState(cmd);
+        btn.classList.toggle('active', !!active);
+      });
+    }
 
     // Sanitize on paste — strip everything except B/I/U/A/BR.
     ed.addEventListener('paste', (e) => {
@@ -354,7 +413,13 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
 
     ed.addEventListener('input', () => {
       onChange && onChange(ed.innerHTML);
+      updateBarState();
     });
+
+    // Reflect B/I/U active state as caret moves, so buttons light up when
+    // the caret is inside bold text etc.
+    ed.addEventListener('keyup', updateBarState);
+    ed.addEventListener('mouseup', updateBarState);
 
     // Single-line headings: swallow Enter to prevent newlines.
     if (singleLine) {
@@ -363,19 +428,16 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
       });
     }
 
-    // Slash command for variable picker.
+    // Slash command for variable picker (kept as a shortcut — buttons too).
     ed.addEventListener('keyup', (e) => {
       if (e.key !== '/') return;
       const sel = window.getSelection();
       if (!sel || sel.rangeCount === 0) return;
       const range = sel.getRangeAt(0);
-      // Only trigger when the "/" is the just-typed char right before caret.
       const offset = range.startOffset;
       const node = range.startContainer;
       if (node.nodeType === 3 && node.textContent[offset - 1] === '/') {
-        // Remove the "/" we just typed.
         node.textContent = node.textContent.slice(0, offset - 1) + node.textContent.slice(offset);
-        // Place caret at previous position.
         const newRange = document.createRange();
         newRange.setStart(node, offset - 1);
         newRange.collapse(true);
@@ -385,11 +447,10 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
       }
     });
 
-    // Floating format toolbar on selection.
-    ed.addEventListener('mouseup', () => maybeShowFormatToolbar(ed));
-    ed.addEventListener('keyup', () => maybeShowFormatToolbar(ed));
-
-    return ed;
+    // Expose the inner editable node so callers that expect the old API
+    // (focus, insert) keep working — but we return the wrap for mounting.
+    wrap.editor = ed;
+    return wrap;
   }
 
   // Insert text at the current caret position inside a contentEditable div.
@@ -397,81 +458,6 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
     editor.focus();
     document.execCommand('insertText', false, text);
     onChange && onChange(editor.innerHTML);
-  }
-
-  let currentToolbar = null;
-  function maybeShowFormatToolbar(editor) {
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
-      hideFormatToolbar();
-      return;
-    }
-    if (!editor.contains(sel.anchorNode)) return;
-    const rect = sel.getRangeAt(0).getBoundingClientRect();
-    if (!rect.width) return;
-    showFormatToolbar(rect, editor);
-  }
-  function hideFormatToolbar() {
-    if (currentToolbar) { currentToolbar.remove(); currentToolbar = null; }
-  }
-  function showFormatToolbar(rect, editor) {
-    hideFormatToolbar();
-    const bar = document.createElement('div');
-    bar.className = 'format-toolbar';
-    bar.innerHTML = `
-      <button type="button" data-cmd="bold" title="Bold (Cmd+B)"><b>B</b></button>
-      <button type="button" data-cmd="italic" title="Italic (Cmd+I)"><i>I</i></button>
-      <button type="button" data-cmd="underline" title="Underline"><u>U</u></button>
-      <button type="button" data-cmd="link" title="Link">🔗</button>
-      <button type="button" data-cmd="unlink" title="Remove link">⌀</button>`;
-    document.body.appendChild(bar);
-    // Position above the selection, clamp to viewport.
-    const barH = bar.offsetHeight;
-    const barW = bar.offsetWidth;
-    let top = rect.top - barH - 8;
-    if (top < 12) top = rect.bottom + 8;
-    let left = rect.left + rect.width / 2 - barW / 2;
-    if (left + barW > window.innerWidth - 12) left = window.innerWidth - barW - 12;
-    if (left < 12) left = 12;
-    bar.style.position = 'fixed';
-    bar.style.top = `${top}px`;
-    bar.style.left = `${left}px`;
-
-    bar.addEventListener('mousedown', (e) => e.preventDefault());  // keep selection
-    bar.addEventListener('click', (e) => {
-      const btn = e.target.closest('button[data-cmd]');
-      if (!btn) return;
-      const cmd = btn.dataset.cmd;
-      editor.focus();
-      if (cmd === 'link') {
-        const url = prompt('Link URL (include https://):');
-        if (url) document.execCommand('createLink', false, url);
-        // Apply target=_blank to the new link.
-        const sel = window.getSelection();
-        if (sel && sel.anchorNode && sel.anchorNode.parentElement && sel.anchorNode.parentElement.tagName === 'A') {
-          sel.anchorNode.parentElement.setAttribute('target', '_blank');
-          sel.anchorNode.parentElement.setAttribute('rel', 'noopener');
-        }
-      } else if (cmd === 'unlink') {
-        document.execCommand('unlink');
-      } else {
-        document.execCommand(cmd);
-      }
-      editor.dispatchEvent(new Event('input'));
-      hideFormatToolbar();
-    });
-    currentToolbar = bar;
-
-    // Close on click elsewhere or escape.
-    setTimeout(() => {
-      const onDoc = (e) => {
-        if (!bar.contains(e.target) && !editor.contains(e.target)) hideFormatToolbar();
-      };
-      const onKey = (e) => { if (e.key === 'Escape') hideFormatToolbar(); };
-      document.addEventListener('mousedown', onDoc, { once: false });
-      document.addEventListener('keydown', onKey, { once: true });
-      bar.__cleanup = () => document.removeEventListener('mousedown', onDoc);
-    }, 0);
   }
 
   function openVariablePicker(targetTextarea, onPick) {
