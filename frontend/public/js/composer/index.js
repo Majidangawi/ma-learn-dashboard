@@ -209,10 +209,16 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
   }
 
   async function uploadImage(file) {
-    const form = new FormData();
-    form.append('file', file);
+    const dataBase64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(String(r.result).split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
     const res = await fetch((window.__MA_DASHBOARD_API__ || '/api') + '/api/writes/upload_email_image', {
-      method: 'POST', credentials: 'include', body: form,
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 }),
     });
     if (!res.ok) throw new Error('http_' + res.status);
     return res.json();

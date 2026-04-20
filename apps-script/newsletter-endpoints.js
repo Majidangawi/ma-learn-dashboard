@@ -18,6 +18,7 @@
  *   case 'admin_update_newsletter':      return _json(_admin_update_newsletter(params));
  *   case 'admin_mark_newsletter_status': return _json(_admin_mark_newsletter_status(params));
  *   case 'admin_append_newsletter_event':return _json(_admin_append_newsletter_event(params));
+ *   case 'admin_upload_email_image':     return _json(_admin_upload_email_image(params));
  *
  * All writes use lowercase email, ISO-ish timestamps in Asia/Riyadh TZ.
  * This file is a REFERENCE COPY in the repo — source of truth is the live
@@ -250,4 +251,38 @@ function _incrementNewsletterCounter(newsletterId, event) {
       return;
     }
   }
+}
+
+// ---------- admin_upload_email_image ----------
+// Fallback uploader for cases where the backend cannot reach the Drive API
+// (e.g. local dev without OAuth refresh token). Normal flow is: frontend
+// composer → backend /api/writes/upload_email_image → Drive API directly.
+// This endpoint exists so the same contract works from Apps Script too.
+//
+// Params:
+//   filename       — original file name (sanitized before use).
+//   contentType    — MIME type (e.g. 'image/jpeg').
+//   dataBase64     — base64-encoded file bytes (hard cap 7000 chars because
+//                    Apps Script GET query strings are length-limited; larger
+//                    uploads must go through the backend Drive path).
+//
+// Returns { ok: true, url: 'https://drive.google.com/uc?id=<id>' } on success.
+function _admin_upload_email_image(p) {
+  var filename = String(p.filename || '').trim();
+  var contentType = String(p.contentType || '').trim();
+  var b64 = String(p.dataBase64 || '');
+  if (!filename || !contentType || !b64) return { ok: false, error: 'missing_params' };
+  if (b64.length > 7000) return { ok: false, error: 'payload_too_large_use_backend' };
+
+  var folderId = PropertiesService.getScriptProperties().getProperty('EMAIL_ASSETS_FOLDER_ID');
+  var bytes;
+  try { bytes = Utilities.base64Decode(b64); }
+  catch (e) { return { ok: false, error: 'invalid_base64' }; }
+
+  var blob = Utilities.newBlob(bytes, contentType, Date.now() + '-' + filename);
+  var file = folderId
+    ? DriveApp.getFolderById(folderId).createFile(blob)
+    : DriveApp.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { ok: true, url: 'https://drive.google.com/uc?id=' + file.getId() };
 }

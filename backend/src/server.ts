@@ -9,8 +9,10 @@ import { meRoutes } from './routes/me.js';
 import { noorRoutes } from './routes/noor.js';
 import { dataRoutes } from './routes/data.js';
 import { writesRoutes } from './routes/writes.js';
+import writesUploadRoute from './routes/writes-upload.js';
 import webhooksRoute from './routes/webhooks.js';
 import { registerAuthGuard } from './auth/middleware.js';
+import { makeEmailAssetsUploader } from './drive/upload.js';
 
 export async function buildServer() {
   const config = loadConfig();
@@ -49,6 +51,16 @@ export async function buildServer() {
   if (config.SHEET_ID && config.APPS_SCRIPT_URL) {
     await writesRoutes(app, config);
   }
+  // Image upload route for the newsletter composer. Global auth guard already
+  // blocks unauthenticated /api/* traffic; `requireAuth` here just surfaces the
+  // authenticated user to the plugin (and keeps the handler unit-testable).
+  await app.register(writesUploadRoute, {
+    drive: { upload: makeEmailAssetsUploader(config) },
+    requireAuth: (req) => {
+      const u = (req as unknown as { user?: { email?: string } }).user;
+      return u?.email ?? null;
+    },
+  });
   await app.register(webhooksRoute, { brevoSecret: process.env.BREVO_WEBHOOK_SECRET ?? '' });
 
   return app;
