@@ -1,15 +1,32 @@
 import { BLOCK_TYPES, VARIABLES, newId, withIds, stripIds } from './blocks.js';
 import { openBlockPicker } from './picker.js';
 import { renderPreview } from './preview.js';
+import { API_BASE } from '../api.js';
 
 /**
- * mountComposer({ root, initialBlocks, language, onChange }) → { getBlocks, destroy }
+ * mountComposer({ root, initialBlocks, language, onChange, getHeader }) → composer handle
  * - root: HTMLElement to render into
  * - initialBlocks: array of Block (matches backend schema)
  * - language: 'AR' | 'EN'
  * - onChange: (blocks) => void; fires on every edit (already without __id)
+ * - getHeader (optional): () => { subject, preheader } — when provided, the
+ *   live preview shows an inbox-style header (subject bold + preheader gray).
+ *   Call the returned handle's refreshPreview() when subject/preheader change.
+ *
+ * Returned handle: { getBlocks, getLanguage, refreshPreview, destroy }
  */
-export function mountComposer({ root, initialBlocks = [], language = 'AR', onChange }) {
+
+// Dropbox share links with ?dl=1 force a download; for inline <img> rendering
+// we need ?raw=1 instead. Rewrite automatically so Majid can paste either form.
+function normalizeImageUrl(url) {
+  if (!url) return url;
+  if (/^https?:\/\/(www\.)?dropbox\.com\//.test(url)) {
+    return url.replace(/([?&])dl=1(\b|$)/, '$1raw=1$2');
+  }
+  return url;
+}
+
+export function mountComposer({ root, initialBlocks = [], language = 'AR', onChange, getHeader }) {
   let blocks = withIds(initialBlocks.length ? initialBlocks : [BLOCK_TYPES.text.default()]);
   let lang = language;
   let sampleVars = {
@@ -57,8 +74,31 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
   }
 
   function renderPreviewPane() {
-    const html = renderPreview(stripIds(blocks), lang, sampleVars);
-    previewEl.innerHTML = `<iframe sandbox srcdoc="${escapeAttr(`<!doctype html><html><body style='margin:0;background:#0E0E0E;padding:16px'>${html}</body></html>`)}"></iframe>`;
+    // Normalize any Dropbox dl=1 links in banner blocks so they render inline.
+    const previewBlocks = stripIds(blocks).map(b =>
+      b.type === 'banner' ? { ...b, url: normalizeImageUrl(b.url) } : b
+    );
+    const bodyHtml = renderPreview(previewBlocks, lang, sampleVars);
+
+    // Inbox-style header (subject + preheader) if the parent provided them.
+    let header = '';
+    if (typeof getHeader === 'function') {
+      const h = getHeader() || {};
+      const subj = h.subject || '';
+      const pre = h.preheader || '';
+      if (subj || pre) {
+        const isAR = lang === 'AR';
+        const dir = isAR ? 'rtl' : 'ltr';
+        header = `
+<div dir="${dir}" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto 12px;padding:12px 16px;background:#fff;border-radius:6px;border:1px solid #e5e5e5;">
+  <div style="color:#111;font-weight:bold;font-size:.95rem;margin-bottom:4px;">${escapeHtml(subj) || '<span style="color:#bbb;">(no subject)</span>'}</div>
+  <div style="color:#888;font-size:.82rem;">${escapeHtml(pre) || '<span style="color:#ccc;">(no preheader)</span>'}</div>
+</div>`;
+      }
+    }
+
+    const fullHtml = header + bodyHtml;
+    previewEl.innerHTML = `<iframe sandbox srcdoc="${escapeAttr(`<!doctype html><html><body style='margin:0;background:#0E0E0E;padding:16px'>${fullHtml}</body></html>`)}"></iframe>`;
   }
 
   function renderAll() {
@@ -229,12 +269,15 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
       r.onerror = rej;
       r.readAsDataURL(file);
     });
-    const res = await fetch((window.__MA_DASHBOARD_API__ || '/api') + '/api/writes/upload_email_image', {
+    const res = await fetch(API_BASE + '/api/writes/upload_email_image', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filename: file.name, contentType: file.type, dataBase64 }),
     });
-    if (!res.ok) throw new Error('http_' + res.status);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`http_${res.status}: ${body.slice(0, 120)}`);
+    }
     return res.json();
   }
 
@@ -255,10 +298,15 @@ export function mountComposer({ root, initialBlocks = [], language = 'AR', onCha
   return {
     getBlocks: () => stripIds(blocks),
     getLanguage: () => lang,
+    refreshPreview: () => { clearTimeout(previewTimer); renderPreviewPane(); },
     destroy: () => { root.innerHTML = ''; },
   };
 }
 
 function escapeAttr(s) {
-  return String(s ?? '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

@@ -119,13 +119,21 @@ export default async function mount(root) {
       </div>`;
     document.body.appendChild(o);
 
+    // Click on the dim overlay (outside the card) closes the modal.
+    o.addEventListener('mousedown', (e) => { if (e.target === o) o.remove(); });
+
     let currentBlocks = nl.blocks || [];
-    mountComposer({
+    const subjEl = o.querySelector('#n-subj');
+    const preEl = o.querySelector('#n-pre');
+    const composer = mountComposer({
       root: o.querySelector('#n-composer'),
       initialBlocks: currentBlocks,
       language: nl.language || 'AR',
       onChange: (b) => { currentBlocks = b; },
+      getHeader: () => ({ subject: subjEl.value, preheader: preEl.value }),
     });
+    subjEl.addEventListener('input', () => composer.refreshPreview());
+    preEl.addEventListener('input', () => composer.refreshPreview());
 
     async function updateCount() {
       const segKey = o.querySelector('#n-seg').value;

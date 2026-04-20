@@ -126,10 +126,27 @@ export default async function mount(root) {
       </div>`;
     document.body.appendChild(o);
 
+    // Click on the dim overlay (outside the card) closes the modal.
+    o.addEventListener('mousedown', (e) => { if (e.target === o) o.remove(); });
+
     let blocksAR = initial.blocksAR || [];
     let blocksEN = initial.blocksEN || [];
-    mountComposer({ root: o.querySelector('#composer-ar'), initialBlocks: blocksAR, language: 'AR', onChange: (b) => { blocksAR = b; } });
-    mountComposer({ root: o.querySelector('#composer-en'), initialBlocks: blocksEN, language: 'EN', onChange: (b) => { blocksEN = b; } });
+    const subjArEl = o.querySelector('#m-subj-ar');
+    const subjEnEl = o.querySelector('#m-subj-en');
+    const cAR = mountComposer({
+      root: o.querySelector('#composer-ar'),
+      initialBlocks: blocksAR, language: 'AR',
+      onChange: (b) => { blocksAR = b; },
+      getHeader: () => ({ subject: subjArEl.value, preheader: '' }),
+    });
+    const cEN = mountComposer({
+      root: o.querySelector('#composer-en'),
+      initialBlocks: blocksEN, language: 'EN',
+      onChange: (b) => { blocksEN = b; },
+      getHeader: () => ({ subject: subjEnEl.value, preheader: '' }),
+    });
+    subjArEl.addEventListener('input', () => cAR.refreshPreview());
+    subjEnEl.addEventListener('input', () => cEN.refreshPreview());
 
     o.querySelector('#m-cancel').onclick = () => o.remove();
     o.querySelector('#m-save').onclick = async () => {
