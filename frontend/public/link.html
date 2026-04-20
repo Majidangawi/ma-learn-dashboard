@@ -20,6 +20,12 @@
   .link .titleEN { color:var(--silver); font-size:.8rem; margin-top:2px; }
   .link .icon { float:right; font-size:1.3rem; margin-left:12px; }
   footer { color:var(--silver); font-size:.75rem; margin-top:40px; }
+  .lib-newsletter { background:#111; border:1px solid #222; border-radius:10px; padding:14px; margin:16px auto 20px; max-width:500px; text-align:right; }
+  .lib-nl-label { color:#C9A84C; font-weight:bold; margin-bottom:8px; }
+  .lib-newsletter input[type="text"], .lib-newsletter input[type="email"] { width:100%; background:#0a0a0a; border:1px solid #2a2a2a; color:#eee; padding:10px; border-radius:6px; margin-bottom:8px; font:inherit; }
+  .lib-newsletter button { width:100%; background:#C9A84C; color:#0E0E0E; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; font:inherit; }
+  .lib-newsletter button:hover { filter:brightness(1.1); }
+  .lib-nl-success { color:#C9A84C; text-align:center; font-weight:bold; padding:14px 0; }
 </style>
 </head>
 <body>
@@ -29,6 +35,61 @@
     ? 'https://api-staging.malearnsa.com'
     : 'https://api.malearnsa.com';
   const APPS_SCRIPT = '__APPS_SCRIPT_URL__';
+
+  function pickLang() {
+    const l = (document.documentElement.lang || 'ar').toLowerCase();
+    return l.startsWith('a') ? 'AR' : 'EN';
+  }
+
+  function mountNewsletter(wrap) {
+    if (localStorage.getItem('ma_nl_subscribed')) return;
+    const lang = pickLang();
+    const labelText = lang === 'AR' ? 'اشترك في النشرة البريدية' : 'Join the newsletter';
+    const namePh = lang === 'AR' ? 'الاسم' : 'Name';
+    const emailPh = lang === 'AR' ? 'البريد الإلكتروني' : 'Email';
+    const btnText = lang === 'AR' ? 'اشتراك' : 'Subscribe';
+    const successText = lang === 'AR' ? '✓ شكراً — أنت في القائمة' : "✓ You're in — check your inbox";
+    const section = document.createElement('section');
+    section.className = 'lib-newsletter';
+    section.id = 'lib-nl';
+    section.innerHTML = `
+      <div class="lib-nl-body">
+        <div class="lib-nl-label">${labelText}</div>
+        <input id="lib-nl-name" type="text" placeholder="${namePh}" autocomplete="name" />
+        <input id="lib-nl-email" type="email" placeholder="${emailPh}" autocomplete="email" />
+        <input type="text" name="website_url" style="display:none" tabindex="-1" autocomplete="off" />
+        <button id="lib-nl-submit" type="button">${btnText}</button>
+      </div>
+      <div class="lib-nl-success" style="display:none">${successText}</div>`;
+    const firstLink = wrap.querySelector('a.link');
+    if (firstLink) wrap.insertBefore(section, firstLink);
+    else wrap.appendChild(section);
+
+    document.getElementById('lib-nl-submit').onclick = async () => {
+      const name = document.getElementById('lib-nl-name').value.trim();
+      const email = document.getElementById('lib-nl-email').value.trim();
+      const honeypot = section.querySelector('input[name="website_url"]').value;
+      if (!email) return;
+      try {
+        const res = await fetch(API + '/api/public/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            email,
+            source: 'lib',
+            language: lang,
+            website_url: honeypot,
+          }),
+        });
+        if (res.ok) {
+          section.querySelector('.lib-nl-body').style.display = 'none';
+          section.querySelector('.lib-nl-success').style.display = 'block';
+          localStorage.setItem('ma_nl_subscribed', '1');
+        }
+      } catch (e) { /* silent fail — user can retry */ }
+    };
+  }
 
   async function init() {
     try {
@@ -47,6 +108,7 @@
             ${i.description ? `<div style="color:var(--silver);font-size:.78rem;margin-top:4px">${i.description}</div>` : ''}
           </a>`).join('')}
         <footer>© Majid Angawi · majidangawi.com</footer>`;
+      mountNewsletter(wrap);
       for (const a of wrap.querySelectorAll('a[data-id]')) {
         a.addEventListener('click', () => {
           if (APPS_SCRIPT && !APPS_SCRIPT.startsWith('__')) {
