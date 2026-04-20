@@ -12,6 +12,8 @@ import { writesRoutes } from './routes/writes.js';
 import writesUploadRoute from './routes/writes-upload.js';
 import webhooksRoute from './routes/webhooks.js';
 import publicRoute from './routes/public.js';
+import newsletterWelcomeRoute from './routes/newsletter-welcome.js';
+import newslettersRoute from './routes/newsletters.js';
 import { registerAuthGuard } from './auth/middleware.js';
 import { makeEmailAssetsUploader } from './drive/upload.js';
 import { createAppsScriptClient } from './apps-script/client.js';
@@ -65,14 +67,49 @@ export async function buildServer() {
       return u?.email ?? null;
     },
   });
-  await app.register(webhooksRoute, { brevoSecret: process.env.BREVO_WEBHOOK_SECRET ?? '' });
+
+  // Shared Apps Script client for webhook dispatch, public subscribe, and the
+  // newsletter welcome endpoint. When APPS_SCRIPT_URL is unset we still need the
+  // webhook registered (it 401s all traffic without affecting the rest), so we
+  // hand it a stub client whose .call() no-ops — the auth gate above runs first.
+  const appsScript = config.APPS_SCRIPT_URL
+    ? createAppsScriptClient({
+        url: config.APPS_SCRIPT_URL,
+        adminToken: config.APPS_SCRIPT_ADMIN_TOKEN,
+      })
+    : {
+        async call<T>(): Promise<T> {
+          throw new Error('apps_script_not_configured');
+        },
+      };
+
+  await app.register(webhooksRoute, {
+    brevoSecret: process.env.BREVO_WEBHOOK_SECRET ?? '',
+    appsScript,
+  });
 
   if (config.APPS_SCRIPT_URL) {
-    const appsScript = createAppsScriptClient({
-      url: config.APPS_SCRIPT_URL,
-      adminToken: config.APPS_SCRIPT_ADMIN_TOKEN,
-    });
     await app.register(publicRoute, { appsScript, rateLimit: { max: 5, windowMs: 10 * 60_000 } });
+  }
+
+  // Newsletter CRUD + send endpoints. Needs SHEET_ID (to read sheet tabs) +
+  // APPS_SCRIPT_URL (save/schedule/delete all funnel through admin_* actions).
+  if (config.SHEET_ID && config.APPS_SCRIPT_URL) {
+    await app.register(newslettersRoute, {
+      appsScript,
+      requireAuth: (req) => {
+        const u = (req as unknown as { user?: { email?: string } }).user;
+        return u?.email ?? null;
+      },
+    });
+  }
+
+  // Newsletter welcome endpoint — invoked by Apps Script on first subscribe.
+  // Auth is x-admin-token vs process.env.ADMIN_TOKEN (public from Apps Script
+  // internal callers). Reads EmailTemplates directly via Sheets and sends via
+  // Brevo, so we register whenever a SHEET_ID is configured.
+  if (config.SHEET_ID) {
+    await app.register(newsletterWelcomeRoute, { config });
   }
 
   return app;
