@@ -5,6 +5,7 @@ import { readSubscribers, countActive } from '../data/subscribers.js';
 import { applyFilter, type SegmentFilter } from '../data/segment-filter.js';
 import { sendNewsletter } from '../services/send-newsletter.js';
 import { topClickedLinks } from '../data/newsletter-events.js';
+import { readSheet } from '../data/sheets-read.js';
 
 interface AppsScriptLike {
   call<T>(action: string, params: Record<string, unknown>): Promise<T>;
@@ -109,6 +110,55 @@ const plugin: FastifyPluginAsync<NewslettersOpts> = async (app, opts) => {
     if (!opts.requireAuth(req)) return reply.code(401).send({ error: 'unauthorized' });
     const id = (req.params as { id: string }).id;
     return { links: await topClickedLinks(id) };
+  });
+
+  // CLONE — copy a newsletter into a fresh draft, preserving blocks + segment.
+  app.post('/api/writes/newsletter/clone', async (req, reply) => {
+    if (!opts.requireAuth(req)) return reply.code(401).send({ error: 'unauthorized' });
+    const { newsletterId } = (req.body ?? {}) as { newsletterId?: string };
+    if (!newsletterId) return reply.code(400).send({ error: 'missing_newsletterId' });
+    const nls = await readNewsletters();
+    const src = nls.find(n => n.newsletterId === newsletterId);
+    if (!src) return reply.code(404).send({ error: 'not_found' });
+    const r = await opts.appsScript.call<{ newsletterId: string }>('admin_create_newsletter', {
+      subject: `${src.subject} (Clone)`,
+      preheader: src.preheader,
+      language: src.language,
+      blocks: JSON.stringify(src.blocks),
+      segmentFilter: JSON.stringify(src.segmentFilter),
+      cloneOf: src.newsletterId,
+    });
+    return { ok: true, newsletterId: r.newsletterId };
+  });
+
+  // RESEND TO NON-OPENERS — clone but set excludeEmails to everyone who opened.
+  app.post('/api/writes/newsletter/resend_non_openers', async (req, reply) => {
+    if (!opts.requireAuth(req)) return reply.code(401).send({ error: 'unauthorized' });
+    const { newsletterId } = (req.body ?? {}) as { newsletterId?: string };
+    if (!newsletterId) return reply.code(400).send({ error: 'missing_newsletterId' });
+    const nls = await readNewsletters();
+    const src = nls.find(n => n.newsletterId === newsletterId);
+    if (!src) return reply.code(404).send({ error: 'not_found' });
+    if (src.status !== 'sent') return reply.code(400).send({ error: 'must_be_sent' });
+
+    const events = await readSheet({ tab: 'NewsletterEvents' });
+    const openers = new Set(
+      events
+        .filter(e => String(e.NewsletterID ?? '') === newsletterId && String(e.Event ?? '') === 'opened')
+        .map(e => String(e.Email ?? '').toLowerCase())
+        .filter(Boolean),
+    );
+    const newFilter: SegmentFilter = { ...src.segmentFilter, excludeEmails: Array.from(openers) };
+
+    const r = await opts.appsScript.call<{ newsletterId: string }>('admin_create_newsletter', {
+      subject: `(Resend) ${src.subject}`,
+      preheader: src.preheader,
+      language: src.language,
+      blocks: JSON.stringify(src.blocks),
+      segmentFilter: JSON.stringify(newFilter),
+      cloneOf: src.newsletterId,
+    });
+    return { ok: true, newsletterId: r.newsletterId };
   });
 };
 

@@ -54,4 +54,28 @@ describe('applyFilter', () => {
     const out = applyFilter(subs, { sources: [] });
     expect(out.length).toBe(3);
   });
+
+  it('drops rows whose email appears in excludeEmails', () => {
+    const out = applyFilter(subs, { excludeEmails: ['buyer@x.com'] });
+    expect(out.map(x => x.email).sort()).toEqual(['both@x.com', 'wait@x.com']);
+  });
+
+  it('excludeEmails is case-insensitive', () => {
+    const out = applyFilter(subs, { excludeEmails: ['BUYER@x.com', 'WAIT@X.COM'] });
+    expect(out.map(x => x.email)).toEqual(['both@x.com']);
+  });
+
+  it('empty excludeEmails array is a no-op', () => {
+    const out = applyFilter(subs, { excludeEmails: [] });
+    expect(out.map(x => x.email)).toEqual(['buyer@x.com', 'wait@x.com', 'both@x.com']);
+  });
+
+  it('excludeEmails combines with other filters (AND)', () => {
+    const out = applyFilter(subs, {
+      sources: ['buyer'],
+      language: 'AR',
+      excludeEmails: ['buyer@x.com'],
+    });
+    expect(out).toEqual([]);
+  });
 });
