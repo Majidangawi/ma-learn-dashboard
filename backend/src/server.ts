@@ -9,6 +9,7 @@ import { meRoutes } from './routes/me.js';
 import { noorRoutes } from './routes/noor.js';
 import { dataRoutes } from './routes/data.js';
 import { writesRoutes } from './routes/writes.js';
+import webhooksRoute from './routes/webhooks.js';
 import { registerAuthGuard } from './auth/middleware.js';
 
 export async function buildServer() {
@@ -48,6 +49,7 @@ export async function buildServer() {
   if (config.SHEET_ID && config.APPS_SCRIPT_URL) {
     await writesRoutes(app, config);
   }
+  await app.register(webhooksRoute, { brevoSecret: process.env.BREVO_WEBHOOK_SECRET ?? '' });
 
   return app;
 }
