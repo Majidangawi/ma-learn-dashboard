@@ -11,6 +11,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
+<style>
+  /* Newsletter card grid + tabs */
+  .card-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; }
+  .nl-card { background:var(--surface); padding:14px; border-radius:10px; cursor:pointer; border:1px solid transparent; transition:border-color .15s; }
+  .nl-card:hover { border-color:#C9A84C; }
+  .nl-badge { color:#888; font-size:.8rem; margin-bottom:6px; }
+  .nl-subject { font-weight:bold; margin-bottom:10px; }
+  .nl-meta { color:var(--silver); font-size:.85rem; line-height:1.5; }
+  .tabs button.tab { background:transparent; border:none; color:#888; padding:6px 12px; cursor:pointer; border-bottom:2px solid transparent; }
+  .tabs button.tab.active { color:#C9A84C; border-bottom-color:#C9A84C; }
+</style>
 </head>
 <body>
 <div class="app-shell" id="shell"></div>

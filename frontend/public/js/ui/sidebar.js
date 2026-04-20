@@ -2,6 +2,7 @@ const NAV = [
   { id: 'home', label: 'Home', href: '#home' },
   { id: 'customers', label: 'Customers', href: '#customers' },
   { id: 'emails', label: 'Emails', href: '#emails' },
+  { id: 'newsletter', label: 'Newsletter', href: '#newsletter' },
   { id: 'coupons', label: 'Coupons', href: '#coupons' },
   { id: 'lessons', label: 'Lessons', href: '#lessons' },
   { id: 'linkbio', label: 'Link-in-bio', href: '#linkbio' },

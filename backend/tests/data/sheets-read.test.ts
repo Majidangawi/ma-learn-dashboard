@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCustomers } from '../../src/data/sheets-read.js';
+import { parseCustomers, rowsToObjects } from '../../src/data/sheets-read.js';
 
 describe('parseCustomers', () => {
   it('maps header row + data rows into typed objects', () => {
@@ -37,5 +37,36 @@ describe('parseCustomers', () => {
     ];
     expect(parseCustomers(rows)).toHaveLength(1);
     expect(parseCustomers(rows)[0].email).toBe('x@y.com');
+  });
+});
+
+describe('rowsToObjects', () => {
+  it('maps header + data rows to objects keyed by header', () => {
+    const out = rowsToObjects([
+      ['Email', 'Name', 'Sources'],
+      ['a@b.com', 'Alice', 'buyer'],
+      ['b@c.com', 'Bob', 'buyer,waitlist'],
+    ]);
+    expect(out).toEqual([
+      { Email: 'a@b.com', Name: 'Alice', Sources: 'buyer' },
+      { Email: 'b@c.com', Name: 'Bob', Sources: 'buyer,waitlist' },
+    ]);
+  });
+
+  it('returns [] when only a header row present', () => {
+    expect(rowsToObjects([['Email', 'Name']])).toEqual([]);
+  });
+
+  it('returns [] on undefined / empty input', () => {
+    expect(rowsToObjects(undefined)).toEqual([]);
+    expect(rowsToObjects([])).toEqual([]);
+  });
+
+  it('backfills missing trailing cells with empty strings', () => {
+    const out = rowsToObjects([
+      ['A', 'B', 'C'],
+      ['1', '2'],
+    ]);
+    expect(out).toEqual([{ A: '1', B: '2', C: '' }]);
   });
 });
