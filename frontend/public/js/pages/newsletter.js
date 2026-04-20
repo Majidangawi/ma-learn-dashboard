@@ -29,6 +29,7 @@ export default async function mount(root) {
   function render() {
     const list = filterByTab(newsletters);
     root.innerHTML = `
+      <div dir="ltr" style="text-align:left">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div>
           <h2 style="color:var(--gold);margin:0">Newsletter</h2>
@@ -47,6 +48,7 @@ export default async function mount(root) {
 
       <div class="card-grid">
         ${list.length ? list.map(nl => renderCard(nl)).join('') : '<p style="color:var(--silver)">Nothing here yet.</p>'}
+      </div>
       </div>`;
 
     document.getElementById('new-btn').onclick = () => openCompose({});
