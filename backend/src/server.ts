@@ -11,8 +11,10 @@ import { dataRoutes } from './routes/data.js';
 import { writesRoutes } from './routes/writes.js';
 import writesUploadRoute from './routes/writes-upload.js';
 import webhooksRoute from './routes/webhooks.js';
+import publicRoute from './routes/public.js';
 import { registerAuthGuard } from './auth/middleware.js';
 import { makeEmailAssetsUploader } from './drive/upload.js';
+import { createAppsScriptClient } from './apps-script/client.js';
 
 export async function buildServer() {
   const config = loadConfig();
@@ -28,6 +30,8 @@ export async function buildServer() {
     'https://linkinbio-staging.malearnsa.com',
     'https://link.malearnsa.com',
     'https://link-staging.malearnsa.com',
+    'https://malearnsa.com',
+    'https://www.malearnsa.com',
   ]);
   await app.register(cors, {
     credentials: true,
@@ -62,6 +66,14 @@ export async function buildServer() {
     },
   });
   await app.register(webhooksRoute, { brevoSecret: process.env.BREVO_WEBHOOK_SECRET ?? '' });
+
+  if (config.APPS_SCRIPT_URL) {
+    const appsScript = createAppsScriptClient({
+      url: config.APPS_SCRIPT_URL,
+      adminToken: config.APPS_SCRIPT_ADMIN_TOKEN,
+    });
+    await app.register(publicRoute, { appsScript, rateLimit: { max: 5, windowMs: 10 * 60_000 } });
+  }
 
   return app;
 }
