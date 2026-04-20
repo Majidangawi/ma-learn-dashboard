@@ -41,7 +41,7 @@ describe('previewUpdateCoupon', () => {
 describe('previewSendEmail', () => {
   it('renders first 3 recipients with variables', () => {
     const tpl = { templateId: 'tpl1', name: 't', subjectAR: 'هلا {name}', subjectEN: 'Hi {name}',
-      bodyAR: 'أهلاً {name}', bodyEN: 'Hello {name}', variables: ['name'] };
+      bodyAR: 'أهلاً {name}', bodyEN: 'Hello {name}', variables: ['name'], blocksAR: [], blocksEN: [] };
     const recips = [
       { email: 'a@x.com', name: 'Alice', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real' },
       { email: 'b@x.com', name: 'Bob', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real' },
@@ -55,7 +55,7 @@ describe('previewSendEmail', () => {
     expect(p.sample[0].body).toBe('أهلاً Alice');
   });
   it('flags requiresExtraApproval when >500', () => {
-    const tpl = { templateId: 'tpl1', name: 't', subjectAR: '', subjectEN: 'Hi', bodyAR: '', bodyEN: 'B', variables: [] };
+    const tpl = { templateId: 'tpl1', name: 't', subjectAR: '', subjectEN: 'Hi', bodyAR: '', bodyEN: 'B', variables: [], blocksAR: [], blocksEN: [] };
     const recips = Array.from({ length: 501 }, (_, i) => ({ email: `u${i}@x.com`, name: `U${i}`, product: 't3', amountSAR: 1, purchasedAt: '', token: '', source: '' }));
     const p = previewSendEmail(tpl, recips, 'EN');
     expect(p.requiresExtraApproval).toBe(true);
