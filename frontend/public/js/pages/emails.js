@@ -159,6 +159,14 @@ export default async function mount(root) {
         <p style="color:var(--silver);font-size:.85rem;margin-bottom:12px">
           Tell Noor the idea. She'll draft subject + body in your brand voice (AR + EN by default).
         </p>
+        <div class="form-field"><label>Product (optional)</label>
+          <select id="n-product">
+            <option value="">None</option>
+            <option value="T3">T3 — Creative AI Cohort</option>
+            <option value="T2">T2 — Intro to Creative AI</option>
+            <option value="T1">T1 — Prompt Pack</option>
+            <option value="BL">Beyond Lighting</option>
+          </select></div>
         <div class="form-field"><label>Your idea</label>
           <textarea id="n-idea" rows="6" placeholder="Announce that May cohort registration opens Monday. Early bird is 799 SAR until the 15th. Limited to 25 seats."></textarea></div>
         <div class="form-field"><label>Language</label>
@@ -174,13 +182,14 @@ export default async function mount(root) {
     o.querySelector('#n-gen').onclick = async () => {
       const idea = o.querySelector('#n-idea').value.trim();
       const language = o.querySelector('#n-lang').value;
+      const product = o.querySelector('#n-product').value || null;
       if (idea.length < 5) { o.querySelector('#n-msg').textContent = 'Tell Noor a bit more.'; return; }
       o.querySelector('#n-gen').disabled = true;
       o.querySelector('#n-msg').innerHTML = '<span style="color:var(--silver)">Noor is drafting… this can take 10–30s.</span>';
       try {
         const { draft } = await api('/api/noor/draft_email', {
           method: 'POST',
-          body: JSON.stringify({ idea, language }),
+          body: JSON.stringify({ idea, language, product }),
         });
         o.remove();
         openNoorReview(draft);

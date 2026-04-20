@@ -149,36 +149,39 @@ export async function noorRoutes(app: FastifyInstance, config: Config): Promise<
     const body = z.object({
       idea: z.string().min(5),
       language: z.enum(['AR', 'EN', 'BOTH']).default('BOTH'),
+      product: z.string().nullable().optional(),
     }).parse(req.body);
     if (tracker.isOverCap()) return reply.code(429).send({ error: 'cost_cap_reached' });
     if (!config.ANTHROPIC_API_KEY) return reply.code(500).send({ error: 'noor_not_configured' });
 
+    const PRODUCT_INFO: Record<string, { nameAR: string; nameEN: string; url: string; descriptionShort: string }> = {
+      T3: { nameAR: 'دورة الذكاء الاصطناعي الإبداعي', nameEN: 'Creative AI Cohort',
+        url: 'https://malearnsa.com/creative-ai-workshop',
+        descriptionShort: '3-evening live cohort teaching Midjourney + prompt psychology' },
+      T2: { nameAR: 'مدخل إلى الذكاء الاصطناعي الإبداعي', nameEN: 'Intro to Creative AI',
+        url: 'https://malearnsa.com/intro-to-creative-ai',
+        descriptionShort: 'self-paced recorded course, 6 modules' },
+      T1: { nameAR: 'حزمة البرومبتات', nameEN: 'Prompt Pack',
+        url: 'https://malearnsa.com/prompt-pack',
+        descriptionShort: '50 curated Midjourney prompts for fashion + product' },
+      BL: { nameAR: 'Beyond Lighting', nameEN: 'Beyond Lighting',
+        url: 'https://malearnsa.com/beyond-lighting',
+        descriptionShort: 'flagship lighting + fashion photography course' },
+    };
+
+    const productContext = body.product && PRODUCT_INFO[body.product]
+      ? `\n\nProduct context: ${PRODUCT_INFO[body.product].nameEN} — ${PRODUCT_INFO[body.product].descriptionShort}. Product URL: ${PRODUCT_INFO[body.product].url}. Include a CTA block pointing to this URL.`
+      : '';
+
     const anthropic = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY });
-    const system = `You are Noor, Majid Angawi's executive assistant helping draft marketing emails for MA Learn.
+    const system = `You are Noor, Majid's executive assistant drafting an email.
+Output a JSON object: { "name": string, "templateId": string (slug), "subjectAR"?: string, "subjectEN"?: string, "blocksAR"?: Block[], "blocksEN"?: Block[] }
+Block is one of: {type:"text",content:string} | {type:"heading",text:string} | {type:"banner",url:string,alt:string,link?:string} | {type:"cta",label:string,url:string} | {type:"bullet_list",items:string[]} | {type:"divider"}.
+Voice: Majid's voice — inspirational, mentor-not-instructor, direct, occasionally funny. AR = Saudi dialect.${productContext}
 
-Brand voice: inspirational, wise, friend-and-mentor. Can be funny and tough-love. Never corporate. Saudi dialect in Arabic (not MSA), not too formal.
+Produce both AR and EN versions unless language is restricted to one. The AR must NOT be a literal translation of EN — rewrite in Saudi dialect with appropriate rhythm.
 
-Use lightweight markdown inside body:
-  ## heading     — renders as gold-accent bold subheading
-  > highlight    — renders as gold-bordered callout box (for key facts, dates, CTAs)
-  - bullet       — bullet list item
-  **bold**       — inline strong
-
-Blank line = paragraph break. Single newline = soft line break.
-
-Produce both AR and EN versions unless language is restricted to one. The AR body must NOT be a literal translation of EN — rewrite in Saudi dialect with appropriate rhythm. The EN body stays warm and direct.
-
-Return ONLY valid JSON (no backticks, no markdown fences):
-{
-  "templateId": "slug-like-id",
-  "name": "Short human label",
-  "subjectAR": "string",
-  "subjectEN": "string",
-  "bodyAR": "markdown body",
-  "bodyEN": "markdown body"
-}
-
-If language=AR, leave subjectEN and bodyEN empty strings. If language=EN, leave subjectAR and bodyAR empty.`;
+Return ONLY valid JSON (no backticks, no markdown fences). If language=AR, omit subjectEN and blocksEN. If language=EN, omit subjectAR and blocksAR.`;
 
     const msg = await anthropic.messages.create({
       model: 'claude-opus-4-7',
