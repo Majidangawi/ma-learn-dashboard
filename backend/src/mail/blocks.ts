@@ -16,6 +16,16 @@ function substitute(s: string, vars: Variables): string {
   return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? esc(vars[k]) : m));
 }
 
+// Dropbox share links with ?dl=1 return the file with forced download headers,
+// which breaks inline <img> rendering in email clients. Rewrite to ?raw=1.
+function normalizeImageUrl(url: string): string {
+  if (!url) return url;
+  if (/^https?:\/\/(www\.)?dropbox\.com\//.test(url)) {
+    return url.replace(/([?&])dl=1(\b|$)/, '$1raw=1$2');
+  }
+  return url;
+}
+
 function renderBlock(block: Block, vars: Variables, isAR: boolean): string {
   switch (block.type) {
     case 'text':
@@ -23,7 +33,8 @@ function renderBlock(block: Block, vars: Variables, isAR: boolean): string {
     case 'heading':
       return `<p style="font-size:1.15rem;font-weight:bold;color:#222;margin:22px 0 10px;">${substitute(esc(block.text), vars)}</p>`;
     case 'banner': {
-      const img = `<img src="${esc(block.url)}" alt="${esc(block.alt)}" style="max-width:100%;height:auto;border-radius:6px;margin:18px 0;">`;
+      const normalizedUrl = normalizeImageUrl(block.url);
+      const img = `<img src="${esc(normalizedUrl)}" alt="${esc(block.alt)}" style="max-width:100%;height:auto;border-radius:6px;margin:18px 0;">`;
       return block.link ? `<a href="${esc(block.link)}" style="text-decoration:none;">${img}</a>` : img;
     }
     case 'cta': {
