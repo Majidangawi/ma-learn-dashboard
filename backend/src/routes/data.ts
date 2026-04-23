@@ -11,6 +11,10 @@ import { computeInsights } from '../data/insights.js';
 export async function dataRoutes(app: FastifyInstance, config: Config): Promise<void> {
   if (!config.SHEET_ID) throw new Error('SHEET_ID missing');
   const sid = config.SHEET_ID;
+  // Dashboard-owned tabs (EmailTemplates, LinkInBio*, AuditLog) live on a
+  // different sheet than shared business data (Tokens/Customers/Lessons).
+  // Falls back to SHEET_ID when SHEET_ID_ADMIN isn't configured.
+  const adminSid = config.SHEET_ID_ADMIN ?? sid;
   const sheets = await createSheetsClient(config);
 
   app.get('/api/data/customers', async () => ({ customers: await readCustomers(sheets, sid) }));
@@ -23,12 +27,12 @@ export async function dataRoutes(app: FastifyInstance, config: Config): Promise<
   app.get('/api/data/coupons', async () => ({ coupons: await readCoupons(sheets, sid) }));
   app.get('/api/data/linkbio', async () => {
     const [items, header] = await Promise.all([
-      readLinkbio(sheets, sid),
-      readLinkbioHeader(sheets, sid),
+      readLinkbio(sheets, adminSid),
+      readLinkbioHeader(sheets, adminSid),
     ]);
     return { items, header };
   });
-  app.get('/api/data/templates', async () => ({ templates: await readEmailTemplates(sheets, sid) }));
+  app.get('/api/data/templates', async () => ({ templates: await readEmailTemplates(sheets, adminSid) }));
 
   app.get('/api/insights', async () => {
     const [customers, tokens] = await Promise.all([
@@ -41,8 +45,8 @@ export async function dataRoutes(app: FastifyInstance, config: Config): Promise<
   // Public (no auth) endpoint — served to link.malearnsa.com visitors.
   app.get('/api/public/linkbio', async () => {
     const [items, header] = await Promise.all([
-      readLinkbio(sheets, sid),
-      readLinkbioHeader(sheets, sid),
+      readLinkbio(sheets, adminSid),
+      readLinkbioHeader(sheets, adminSid),
     ]);
     return { items: items.filter(x => x.active), header };
   });

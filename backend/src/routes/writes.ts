@@ -31,10 +31,12 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
   });
   const sheets = await createSheetsClient(config);
   const sid = config.SHEET_ID!;
+  // Audit log lives on the dashboard-owned sheet, not the shared business sheet.
+  const adminSid = config.SHEET_ID_ADMIN ?? sid;
   const store = new PendingWriteStore();
 
   async function audit(kind: string, inputs: unknown, output: unknown, approval: 'approved' | 'rejected', key: string): Promise<void> {
-    await appendAudit(sheets, sid, {
+    await appendAudit(sheets, adminSid, {
       timestamp: new Date().toISOString(),
       actor: 'majid',
       tool: kind,

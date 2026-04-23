@@ -8,6 +8,10 @@ const schema = z.object({
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().min(1),
   JWT_SECRET: z.string().min(32),
   SHEET_ID: z.string().min(1).optional(),
+  // Dashboard-owned tabs (EmailTemplates, LinkInBio, LinkInBioHeader, AuditLog)
+  // can live on a different sheet from the shared business data (Tokens,
+  // Lessons, Customers, etc.). When unset, falls back to SHEET_ID.
+  SHEET_ID_ADMIN: z.string().min(1).optional(),
   APPS_SCRIPT_URL: z.string().url().optional().or(z.literal('')),
   BACKEND_OAUTH_CLIENT_ID: z.string().min(1),
   BACKEND_OAUTH_CLIENT_SECRET: z.string().min(1),

@@ -161,8 +161,9 @@ export async function buildServer() {
     });
 
     const activitySheets = await createSheetsClient(config);
+    const adminSheetId = config.SHEET_ID_ADMIN ?? config.SHEET_ID!;
     await app.register(activityRoute, {
-      readLog: () => readRecentActivity(activitySheets, config.SHEET_ID!),
+      readLog: () => readRecentActivity(activitySheets, adminSheetId),
       requireAuth: (req) => {
         const u = (req as unknown as { user?: { email?: string } }).user;
         return u?.email ?? null;
