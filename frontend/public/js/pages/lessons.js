@@ -19,7 +19,7 @@ function escapeHtml(s) {
 }
 
 export default async function mount(root) {
-  root.innerHTML = '<div class="lessons-page" dir="ltr"><div class="lessons-tabs">Loading…</div><div class="lessons-body"><div class="lessons-list"></div><div class="lessons-editor empty">Select a lesson on the left</div></div></div>';
+  root.innerHTML = '<div class="lessons-page" dir="ltr"><div class="lessons-tabs">Loading…</div><div class="lessons-body"><div class="lessons-editor empty">Select a lesson from the right</div><div class="lessons-list"></div></div></div>';
 
   const state = {
     courses: [],
@@ -69,8 +69,15 @@ export default async function mount(root) {
     state.selectedLesson = lesson;
     state.draftMedia = { videoId: lesson.video_id, pdfUrl: lesson.pdf_url, active: lesson.active };
     state.draftBlocks = null;
-    loadLessonContent(id).then(renderEditor);
+    state.selectedContent = { blocks: [], html: '' };
     renderList();
+    renderEditor();
+    loadLessonContent(id)
+      .then(() => renderEditor())
+      .catch(e => {
+        console.error('loadLessonContent failed', e);
+        toast('Content load failed: ' + e.message, 'error');
+      });
   }
 
   function groupByModule(lessons) {
@@ -93,8 +100,8 @@ export default async function mount(root) {
       <div class="lessons-page" dir="ltr">
         <div class="lessons-tabs" id="l-tabs"></div>
         <div class="lessons-body">
-          <aside class="lessons-list" id="l-list"></aside>
           <section class="lessons-editor ${state.selectedLesson ? '' : 'empty'}" id="l-editor"></section>
+          <aside class="lessons-list" id="l-list"></aside>
         </div>
       </div>`;
     renderTabs();
@@ -187,7 +194,7 @@ export default async function mount(root) {
     if (!el) return;
     if (!state.selectedLesson) {
       el.className = 'lessons-editor empty';
-      el.innerHTML = 'Select a lesson on the left';
+      el.innerHTML = 'Select a lesson from the right';
       return;
     }
     const l = state.selectedLesson;

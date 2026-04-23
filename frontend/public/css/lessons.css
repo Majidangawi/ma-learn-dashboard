@@ -56,10 +56,10 @@
 .lessons-tab.active { background: var(--c-gold-soft); color: var(--c-gold-bright); border-color: var(--c-border-gold); }
 .lessons-tab .count { color: var(--c-ink-3); font-size: 0.78rem; }
 
-/* Two-column split: list + editor */
+/* Two-column split: editor (left) + list (right) */
 .lessons-body {
   display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 320px;
   gap: var(--sp-4);
   min-height: 0;
 }

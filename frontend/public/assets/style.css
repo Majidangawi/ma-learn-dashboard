@@ -22,7 +22,7 @@ body {
 .env-badge {
   position: fixed;
   top: 8px;
-  left: 8px;
+  right: 8px;
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 11px;
@@ -98,7 +98,7 @@ body {
 }
 .sidebar {
   background: var(--surface);
-  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
   padding: 16px 0;
 }
 .sidebar a {
@@ -318,13 +318,13 @@ body {
 
 /* ───── Noor widget ───── */
 .noor-fab {
-  position:fixed; bottom:24px; left:24px; z-index:100;
+  position:fixed; bottom:24px; right:24px; z-index:100;
   background:var(--gold); color:#000; border:0;
   padding:10px 20px; border-radius:999px; font-weight:700; cursor:pointer;
   box-shadow:0 4px 20px rgba(201,168,76,0.3); font-family:inherit;
 }
 .noor-panel {
-  position:fixed; bottom:80px; left:24px; z-index:100;
+  position:fixed; bottom:80px; right:24px; z-index:100;
   width:360px; max-height:70vh; display:flex; flex-direction:column;
   background:var(--surface); border:1px solid var(--border); border-radius:12px;
 }

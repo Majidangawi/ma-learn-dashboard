@@ -65,7 +65,7 @@ export default async function mount(root) {
 
     root.innerHTML = `
       <h2 style="color:var(--gold)">Link-in-Bio</h2>
-      <p style="color:var(--silver);margin-bottom:16px">Public page: <a href="https://linkinbio.malearnsa.com" target="_blank">linkinbio.malearnsa.com</a></p>
+      <div style="margin-bottom:16px"><button class="btn-primary" id="lb-open-public" style="display:inline-flex;align-items:center;gap:8px">Open public page ↗</button></div>
 
       <section style="background:var(--surface);padding:16px;border-radius:10px;margin-bottom:20px">
         <h3 style="color:var(--gold);margin-bottom:12px">Header</h3>
@@ -101,6 +101,7 @@ export default async function mount(root) {
 
     document.getElementById('add-btn').onclick = openAddForm;
     document.getElementById('save-header').onclick = saveHeader;
+    document.getElementById('lb-open-public').onclick = () => window.open('https://linkinbio.malearnsa.com', '_blank', 'noopener');
     for (const b of root.querySelectorAll('button[data-action=edit]')) b.onclick = () => openEditForm(b.dataset.id);
     for (const b of root.querySelectorAll('button[data-action=delete]')) b.onclick = () => deleteItem(b.dataset.id);
     for (const b of root.querySelectorAll('button[data-action=toggle]')) b.onclick = () => toggleActivePill(b.dataset.id);
