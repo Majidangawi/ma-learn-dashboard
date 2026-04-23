@@ -15,6 +15,7 @@ import publicRoute from './routes/public.js';
 import newsletterWelcomeRoute from './routes/newsletter-welcome.js';
 import newslettersRoute from './routes/newsletters.js';
 import contactsRoute from './routes/contacts.js';
+import lessonsReadRoute from './routes/lessons-read.js';
 import writesContactRoute from './routes/writes-contact.js';
 import { invalidateContactsCache } from './data/contacts.js';
 import { registerAuthGuard } from './auth/middleware.js';
@@ -130,6 +131,13 @@ export async function buildServer() {
   // Sheets — no Apps Script needed, so gate on SHEET_ID only.
   if (config.SHEET_ID) {
     await app.register(contactsRoute, {
+      requireAuth: (req) => {
+        const u = (req as unknown as { user?: { email?: string } }).user;
+        return u?.email ?? null;
+      },
+    });
+
+    await app.register(lessonsReadRoute, {
       requireAuth: (req) => {
         const u = (req as unknown as { user?: { email?: string } }).user;
         return u?.email ?? null;
