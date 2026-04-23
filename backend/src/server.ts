@@ -16,10 +16,13 @@ import newsletterWelcomeRoute from './routes/newsletter-welcome.js';
 import newslettersRoute from './routes/newsletters.js';
 import contactsRoute from './routes/contacts.js';
 import lessonsReadRoute from './routes/lessons-read.js';
+import activityRoute from './routes/activity.js';
 import writesContactRoute from './routes/writes-contact.js';
 import writesLessonRoute from './routes/writes-lesson.js';
 import { invalidateContactsCache } from './data/contacts.js';
 import { invalidateLessonsCache } from './data/lessons.js';
+import { readRecentActivity } from './data/audit-log.js';
+import { createSheetsClient } from './data/sheets-client.js';
 import { registerAuthGuard } from './auth/middleware.js';
 import { makeEmailAssetsUploader } from './drive/upload.js';
 import { createAppsScriptClient } from './apps-script/client.js';
@@ -149,6 +152,15 @@ export async function buildServer() {
     });
 
     await app.register(lessonsReadRoute, {
+      requireAuth: (req) => {
+        const u = (req as unknown as { user?: { email?: string } }).user;
+        return u?.email ?? null;
+      },
+    });
+
+    const activitySheets = await createSheetsClient(config);
+    await app.register(activityRoute, {
+      readLog: () => readRecentActivity(activitySheets, config.SHEET_ID!),
       requireAuth: (req) => {
         const u = (req as unknown as { user?: { email?: string } }).user;
         return u?.email ?? null;

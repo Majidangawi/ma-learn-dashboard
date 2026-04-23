@@ -64,3 +64,60 @@ export async function isIdempotencyKeySeen(
   const rows = (res.data.values ?? []) as string[][];
   return rows.some((r) => r[0] === key);
 }
+
+// ─── Activity rail reader ────────────────────────────────────────────
+
+export interface ActivityEvent {
+  at: string;
+  type: string;
+  summary: string;
+  actor: string;
+}
+
+const TYPE_BY_TOOL: Record<string, string> = {
+  save_lesson_media: 'lesson_save',
+  save_content: 'lesson_save',
+  add_lesson: 'lesson_create',
+  delete_lesson: 'lesson_delete',
+  send_newsletter: 'newsletter_send',
+  send_test_newsletter: 'newsletter_send',
+  create_coupon: 'coupon_create',
+  update_coupon: 'coupon_update',
+  delete_coupon: 'coupon_update',
+  gift_token: 'token_gift',
+  admin_gift_token: 'token_gift',
+};
+
+function humanize(tool: string): string {
+  const words = tool.replace(/^admin_/, '').split('_').map(w => w.toLowerCase());
+  if (words.length === 0) return tool;
+  words[0] = words[0]!.charAt(0).toUpperCase() + words[0]!.slice(1);
+  return words.join(' ');
+}
+
+export function buildActivityEvent(row: string[]): ActivityEvent {
+  const [at, actor, tool] = row;
+  return {
+    at: at ?? '',
+    actor: actor ?? '',
+    type: TYPE_BY_TOOL[tool ?? ''] ?? 'default',
+    summary: humanize(tool ?? ''),
+  };
+}
+
+export async function readRecentActivity(
+  sheets: SheetsClient,
+  sheetId: string,
+): Promise<ActivityEvent[]> {
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: sheetId,
+    range: 'AuditLog!A:G',
+  });
+  const rows = (res.data.values ?? []) as string[][];
+  // Assume first row may be headers; detect by timestamp not parseable.
+  const data = rows.length && isNaN(Date.parse(String(rows[0]![0]))) ? rows.slice(1) : rows;
+  return data
+    .filter(r => r[0])
+    .map(buildActivityEvent)
+    .sort((a, b) => b.at.localeCompare(a.at));
+}
