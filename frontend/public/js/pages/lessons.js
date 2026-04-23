@@ -220,9 +220,9 @@ export default async function mount(root) {
       <div id="f-composer"></div>
 
       <div class="lessons-actions">
-        <button class="primary" id="f-save" disabled title="Wired in Stage B">Save changes</button>
-        <button id="f-open-player" disabled title="Wired in Stage B">Open in player ↗</button>
-        <button class="danger" id="f-delete" disabled title="Wired in Stage B">🗑 Delete</button>
+        <button class="primary" id="f-save">Save changes</button>
+        <button id="f-open-player">Open in player ↗</button>
+        <button class="danger" id="f-delete">🗑 Delete</button>
       </div>
       <div id="f-msg" style="color:var(--c-ink-3);font-size:.85rem;margin-top:var(--sp-3)"></div>
     `;
@@ -251,14 +251,185 @@ export default async function mount(root) {
         onChange: (b) => { state.draftBlocks = b; },
       });
     }
+
+    document.getElementById('f-save').onclick = doSave;
+    document.getElementById('f-open-player').onclick = doOpenInPlayer;
+    document.getElementById('f-delete').onclick = doDelete;
+  }
+
+  async function doSave() {
+    if (!state.selectedLesson) return;
+    const msg = document.getElementById('f-msg');
+    msg.textContent = 'Saving…';
+    try {
+      const newTitle = document.getElementById('f-title').value.trim();
+      if (newTitle && newTitle !== state.selectedLesson.title) {
+        console.warn('Title changed — save_lesson_media does not persist title in v1. Edit sheet directly.');
+      }
+      await api('/api/writes/lesson/save_media', {
+        method: 'POST',
+        body: JSON.stringify({
+          lessonId: state.selectedLesson.id,
+          videoId: state.draftMedia.videoId || '',
+          pdfUrl: state.draftMedia.pdfUrl || '',
+          active: !!state.draftMedia.active,
+        }),
+      });
+
+      if (state.draftBlocks) {
+        const { renderPreview } = await import('../composer/preview.js');
+        const html = renderPreview(state.draftBlocks, 'AR', {}).replace(/<div dir="[^"]*"[^>]*>|<\/div>|<hr[^>]*>|<p style="margin:0[^"]*"[^>]*>[\s\S]*$/g, '');
+        await api('/api/writes/lesson/save_content', {
+          method: 'POST',
+          body: JSON.stringify({
+            lessonId: state.selectedLesson.id,
+            blocks: state.draftBlocks,
+            html: html,
+          }),
+        });
+      }
+
+      msg.textContent = 'Saved ✓';
+      toast('Lesson saved', 'success');
+      await loadLessons();
+      renderList();
+    } catch (e) {
+      msg.textContent = `Error: ${e.message}`;
+      toast(`Save failed: ${e.message}`, 'error');
+    }
+  }
+
+  function doOpenInPlayer() {
+    if (!state.selectedLesson) return;
+    const testTokenPerCourse = {
+      'intro-to-creative-ai': 'MAL-T2-PREVIEW',
+      'beyond-lighting':      'MAL-BL-PREVIEW',
+    };
+    const token = testTokenPerCourse[state.activeCourse];
+    if (!token) { toast('No admin-preview token configured for this course', 'error'); return; }
+    const url = `https://player.malearnsa.com/watch.html?token=${encodeURIComponent(token)}&course=${encodeURIComponent(state.activeCourse)}&lesson=${encodeURIComponent(state.selectedLesson.id)}`;
+    window.open(url, '_blank', 'noopener');
+  }
+
+  function doDelete() {
+    if (!state.selectedLesson) return;
+    const l = state.selectedLesson;
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = `
+      <div class="modal-card" style="max-width:480px">
+        <h3>Delete this lesson?</h3>
+        <div class="delete-preview">
+          <div class="n">${escapeHtml(l.module || '')} · ${escapeHtml(l.title || '—')}</div>
+          <div class="e">${l.video_id ? 'Video: ' + escapeHtml(l.video_id) : '<em>no video</em>'}</div>
+          <div class="facts">PDF: ${l.pdf_url ? escapeHtml(l.pdf_url) : '—'}<br>Active: ${l.active ? 'yes' : 'no'}</div>
+        </div>
+        <p style="color:var(--c-ink-2);font-size:.85rem;line-height:1.5">
+          This removes the row from the Lessons sheet AND the LessonContent row.
+          Students who bookmarked the deep link will see a 404.
+        </p>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="x-cancel">Cancel</button>
+          <button class="btn-primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete lesson</button>
+        </div>
+        <div class="modal-msg" id="x-msg"></div>
+      </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+    o.querySelector('#x-cancel').onclick = () => o.remove();
+    o.querySelector('#x-go').onclick = async () => {
+      o.querySelector('#x-msg').textContent = 'Deleting…';
+      try {
+        const r = await api('/api/writes/lesson/delete', {
+          method: 'POST', body: JSON.stringify({ lessonId: l.id }),
+        });
+        if (r.success || r.ok) {
+          o.remove();
+          toast('Lesson deleted', 'success');
+          state.selectedLessonId = null; state.selectedLesson = null;
+          await loadLessons();
+          render();
+        } else {
+          o.querySelector('#x-msg').textContent = `Error: ${r.reason || r.error || 'unknown'}`;
+        }
+      } catch (e) {
+        o.querySelector('#x-msg').textContent = `Error: ${e.message}`;
+      }
+    };
   }
 
   async function doReorder(fromId, targetId, above) {
-    console.warn('reorder wired in Stage B');
+    const target = state.lessons.find(l => l.id === targetId);
+    const moving = state.lessons.find(l => l.id === fromId);
+    if (!target || !moving) return;
+    const newModuleOrder = target.module_order;
+    const newLessonOrder = above ? target.lesson_order - 0.5 : target.lesson_order + 0.5;
+    try {
+      await api('/api/writes/lesson/reorder', {
+        method: 'POST',
+        body: JSON.stringify({
+          lessonId: fromId,
+          moduleOrder: newModuleOrder,
+          lessonOrder: Math.max(1, Math.round(newLessonOrder * 2) / 2),
+        }),
+      });
+      toast('Reordered', 'success');
+      await loadLessons();
+      renderList();
+    } catch (e) {
+      toast(`Reorder failed: ${e.message}`, 'error');
+    }
   }
 
   function openAddModal() {
-    console.warn('add lesson wired in Stage B');
+    const modules = Array.from(new Set(state.lessons.map(l => l.module))).filter(Boolean);
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = `
+      <div class="modal-card" style="max-width:480px">
+        <h3>Add a new lesson</h3>
+        <div class="form-field">
+          <label>Module (existing or new)</label>
+          <input id="a-module" list="a-module-list" value="" />
+          <datalist id="a-module-list">${modules.map(m => `<option value="${escapeHtml(m)}">`).join('')}</datalist>
+        </div>
+        <div class="form-field"><label>Title</label><input id="a-title" /></div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="a-cancel">Cancel</button>
+          <button class="btn-primary" id="a-go">Add lesson</button>
+        </div>
+        <div class="modal-msg" id="a-msg"></div>
+      </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+    o.querySelector('#a-cancel').onclick = () => o.remove();
+    o.querySelector('#a-go').onclick = async () => {
+      const module = o.querySelector('#a-module').value.trim();
+      const title = o.querySelector('#a-title').value.trim();
+      if (!module || !title) { o.querySelector('#a-msg').textContent = 'Module + title required.'; return; }
+      const existing = state.lessons.filter(l => l.module === module);
+      const module_order = existing.length ? existing[0].module_order : (Math.max(0, ...state.lessons.map(l => l.module_order)) + 1);
+      const lesson_order = existing.length ? Math.max(...existing.map(l => l.lesson_order)) + 1 : 1;
+      o.querySelector('#a-msg').textContent = 'Adding…';
+      try {
+        const r = await api('/api/writes/lesson/add', {
+          method: 'POST',
+          body: JSON.stringify({
+            course: state.activeCourse, module, module_order, lesson_order, title,
+          }),
+        });
+        if (r.success) {
+          o.remove();
+          toast('Lesson added', 'success');
+          await loadLessons();
+          renderList();
+        } else {
+          o.querySelector('#a-msg').textContent = `Error: ${r.reason || r.error || 'unknown'}`;
+        }
+      } catch (e) {
+        o.querySelector('#a-msg').textContent = `Error: ${e.message}`;
+      }
+    };
   }
 
   function toast(msg, kind) {
