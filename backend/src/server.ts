@@ -17,7 +17,9 @@ import newslettersRoute from './routes/newsletters.js';
 import contactsRoute from './routes/contacts.js';
 import lessonsReadRoute from './routes/lessons-read.js';
 import writesContactRoute from './routes/writes-contact.js';
+import writesLessonRoute from './routes/writes-lesson.js';
 import { invalidateContactsCache } from './data/contacts.js';
+import { invalidateLessonsCache } from './data/lessons.js';
 import { registerAuthGuard } from './auth/middleware.js';
 import { makeEmailAssetsUploader } from './drive/upload.js';
 import { createAppsScriptClient } from './apps-script/client.js';
@@ -116,6 +118,15 @@ export async function buildServer() {
         return u?.email ?? null;
       },
       invalidateCache: invalidateContactsCache,
+    });
+
+    await app.register(writesLessonRoute, {
+      appsScript,
+      requireAuth: (req) => {
+        const u = (req as unknown as { user?: { email?: string } }).user;
+        return u?.email ?? null;
+      },
+      invalidateCache: invalidateLessonsCache,
     });
   }
 
