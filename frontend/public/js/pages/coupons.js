@@ -1,13 +1,16 @@
 import { api } from '../api.js';
 import { openApprovalModal, renderCreateCouponPreview, renderUpdateCouponPreview } from '../ui/approval-modal.js';
+import { icon } from '../ui/icons.js';
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 }
 
 export default async function mount(root) {
-  root.innerHTML = '<h2 style="color:var(--gold)">Coupons</h2><p style="color:var(--silver)">Loading…</p>';
+  root.innerHTML = `<div style="padding: var(--s-6); color: var(--c-fg-3); font-size: var(--fs-body-sm)">Loading coupons…</div>`;
   let { coupons } = await api('/api/data/coupons');
+
+  let openCode = null; // '__new__' | coupon code | null
 
   function status(c) {
     if (!c.active) return 'inactive';
@@ -16,165 +19,213 @@ export default async function mount(root) {
     return 'active';
   }
 
-  function render() {
-    const rows = coupons.map(c => `
-      <tr data-code="${escapeHtml(c.code)}">
-        <td><code>${escapeHtml(c.code)}</code></td>
-        <td>${escapeHtml(c.type)}</td>
-        <td>${c.value}${c.type === 'percentage' ? '%' : ' SAR'}</td>
-        <td>${escapeHtml(c.products)}</td>
-        <td>${escapeHtml(c.endDate || '—')}</td>
-        <td>${c.usesLeft ?? '∞'}</td>
-        <td><span class="status-${status(c)}">${status(c)}</span></td>
-        <td style="white-space:nowrap;display:flex;gap:6px;justify-content:flex-end">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-action="edit" data-code="${escapeHtml(c.code)}">Edit</button>
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-action="toggle" data-code="${escapeHtml(c.code)}">${c.active ? 'Off' : 'On'}</button>
-          <button class="btn-danger" data-ui="btn" data-variant="danger" data-action="delete" data-code="${escapeHtml(c.code)}">Delete</button>
-        </td>
-      </tr>`).join('');
-
-    root.innerHTML = `
-      <h2 style="color:var(--gold)">Coupons</h2>
-      <button class="btn-primary" data-ui="btn" data-variant="primary" id="new-btn" style="margin-bottom:16px">+ New coupon</button>
-      <table class="data-table">
-        <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Products</th><th>Expires</th><th>Uses left</th><th>Status</th><th></th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-
-    document.getElementById('new-btn').onclick = () => openForm({});
-    for (const b of root.querySelectorAll('button[data-action=edit]')) {
-      b.onclick = () => openForm(coupons.find(c => c.code === b.dataset.code));
-    }
-    for (const b of root.querySelectorAll('button[data-action=toggle]')) {
-      b.onclick = () => quickToggle(b.dataset.code);
-    }
-    for (const b of root.querySelectorAll('button[data-action=delete]')) {
-      b.onclick = () => deleteCoupon(b.dataset.code);
-    }
+  function toneFor(st) {
+    if (st === 'active') return 'success';
+    if (st === 'inactive') return 'warning';
+    if (st === 'expired') return 'danger';
+    return 'default';
   }
 
-  // Open the form modal for create (no code passed) or edit (coupon object passed).
-  function openForm(initial) {
+  function buildFormHtml(initial) {
     const isEdit = !!initial.code;
-    const form = document.createElement('div');
-    form.className = 'modal-overlay';
-    form.innerHTML = `
-      <div class="modal-card">
-        <h3>${isEdit ? 'Edit coupon' : 'New coupon'}</h3>
-        <div class="form-field"><label>Code ${isEdit ? '(read-only)' : ''}</label>
-          <input id="f-code" placeholder="EARLYBIRD" value="${escapeHtml(initial.code || '')}" ${isEdit ? 'readonly style="opacity:.6"' : ''} /></div>
-        <div class="form-field"><label>Type</label>
-          <select id="f-type">
+    const current = String(initial.products || 'all').split(',').map(s => s.trim()).filter(Boolean);
+    const isAll = current.includes('all') || current.length === 0;
+    const options = [
+      { key: 'all', label: 'All products' },
+      { key: 'intro-to-creative-ai', label: 'T2 (ITCAI) — Intro to Creative AI' },
+      { key: 'creative-ai-workshop-t3', label: 'T3 — Creative AI Workshop' },
+      { key: 'beyond-lighting', label: 'Beyond Lighting' },
+      { key: 'prompt-pack', label: 'Prompt Pack' },
+    ];
+    return `
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--s-4)">
+        <div data-ui="field"><label>Code ${isEdit ? '(read-only)' : ''}</label>
+          <input data-ui="input" id="f-code" placeholder="EARLYBIRD" value="${escapeHtml(initial.code || '')}" ${isEdit ? 'readonly style="opacity:.6"' : ''}></div>
+        <div data-ui="field"><label>Type</label>
+          <select data-ui="select" id="f-type">
             <option value="percentage" ${initial.type === 'percentage' ? 'selected' : ''}>Percent %</option>
             <option value="flat" ${initial.type === 'flat' ? 'selected' : ''}>Flat SAR</option>
           </select></div>
-        <div class="form-field"><label>Value</label>
-          <input id="f-value" type="number" step="any" value="${initial.value ?? ''}" /></div>
-        <div class="form-field"><label>Min amount (SAR)</label>
-          <input id="f-min" type="number" step="any" value="${initial.minSAR ?? 0}" /></div>
-        <div class="form-field"><label>Products this coupon applies to</label>
-          <div id="f-products-group" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px">
-            ${(() => {
-              const current = String(initial.products || 'all').split(',').map(s => s.trim()).filter(Boolean);
-              const isAll = current.includes('all') || current.length === 0;
-              const options = [
-                { key: 'all', label: 'All products' },
-                { key: 'intro-to-creative-ai', label: 'T2 — Intro to Creative AI' },
-                { key: 'creative-ai-workshop-t3', label: 'T3 — Creative AI Workshop' },
-                { key: 'beyond-lighting', label: 'Beyond Lighting' },
-                { key: 'prompt-pack', label: 'Prompt Pack' },
-              ];
-              return options.map(o => {
-                const checked = o.key === 'all' ? isAll : (!isAll && current.includes(o.key));
-                return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;color:#ddd;margin:0">
-                  <input type="checkbox" class="f-prod" value="${o.key}" ${checked ? 'checked' : ''} style="width:auto;margin:0" />
-                  ${escapeHtml(o.label)}
-                </label>`;
-              }).join('');
-            })()}
-          </div>
-        </div>
-        <div class="form-field"><label>Starts (YYYY-MM-DD)</label>
-          <input id="f-start" type="date" value="${escapeHtml((initial.startDate || '').slice(0, 10))}" /></div>
-        <div class="form-field"><label>Expires (YYYY-MM-DD)</label>
-          <input id="f-end" type="date" value="${escapeHtml((initial.endDate || '').slice(0, 10))}" /></div>
-        <div class="form-field"><label>Usage cap (blank = unlimited)</label>
-          <input id="f-cap" type="number" value="${initial.usesLeft ?? ''}" /></div>
-        ${isEdit ? `<div class="form-field"><label>Status</label>
-          <select id="f-active"><option value="true" ${initial.active ? 'selected' : ''}>Active</option><option value="false" ${!initial.active ? 'selected' : ''}>Inactive</option></select></div>` : ''}
-        <div class="modal-actions">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="cancel">Cancel</button>
-          <button class="btn-primary" data-ui="btn" data-variant="primary" id="save">Preview</button>
-        </div>
-        <div class="modal-msg" id="fmsg"></div>
-      </div>`;
-    document.body.appendChild(form);
+        <div data-ui="field"><label>Value</label><input data-ui="input" id="f-value" type="number" step="any" value="${initial.value ?? ''}"></div>
+        <div data-ui="field"><label>Min amount (SAR)</label><input data-ui="input" id="f-min" type="number" step="any" value="${initial.minSAR ?? 0}"></div>
+        <div data-ui="field"><label>Starts</label><input data-ui="input" id="f-start" type="date" value="${escapeHtml((initial.startDate || '').slice(0, 10))}"></div>
+        <div data-ui="field"><label>Expires</label><input data-ui="input" id="f-end" type="date" value="${escapeHtml((initial.endDate || '').slice(0, 10))}"></div>
+        <div data-ui="field"><label>Usage cap (blank = unlimited)</label><input data-ui="input" id="f-cap" type="number" value="${initial.usesLeft ?? ''}"></div>
+        ${isEdit ? `<div data-ui="field"><label>Status</label>
+          <select data-ui="select" id="f-active"><option value="true" ${initial.active ? 'selected' : ''}>Active</option><option value="false" ${!initial.active ? 'selected' : ''}>Inactive</option></select></div>` : ''}
+      </div>
 
-    // Products group: checking "all" un-checks the specific ones, and vice-versa.
-    const prodGroup = form.querySelector('#f-products-group');
+      <div data-ui="field" style="margin-top: var(--s-4)">
+        <label>Applies to</label>
+        <div id="f-products-group" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: var(--s-2); padding: var(--s-3); background: var(--c-ink-1); border: 1px solid var(--c-ink-4); border-radius: var(--r-md)">
+          ${options.map(o => {
+            const checked = o.key === 'all' ? isAll : (!isAll && current.includes(o.key));
+            return `<label style="display:flex; align-items:center; gap: var(--s-2); cursor:pointer; font-size: var(--fs-body-sm); color: var(--c-fg-2)">
+              <input type="checkbox" class="f-prod" value="${o.key}" ${checked ? 'checked' : ''}>
+              ${escapeHtml(o.label)}
+            </label>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap: var(--s-2); margin-top: var(--s-5)">
+        <button data-ui="btn" data-variant="ghost"   id="f-cancel">Cancel</button>
+        <button data-ui="btn" data-variant="primary" id="f-save">Preview</button>
+      </div>
+      <div id="f-msg" style="text-align:right; font-size: var(--fs-body-sm); color: var(--c-fg-3); margin-top: var(--s-2)"></div>`;
+  }
+
+  function collapse() {
+    if (!openCode) return;
+    if (openCode === '__new__') {
+      const slot = document.getElementById('new-slot');
+      if (slot) slot.innerHTML = '';
+    } else {
+      const tr = root.querySelector(`.coupon-expand[data-for="${CSS.escape(openCode)}"]`);
+      if (tr) {
+        tr.style.display = 'none';
+        const inner = tr.querySelector('.coupon-expand-inner');
+        if (inner) inner.innerHTML = '';
+      }
+    }
+    openCode = null;
+  }
+
+  function openFormInto(container, initial) {
+    container.innerHTML = `<div style="padding: var(--s-5); background: var(--c-ink-2); border-radius: var(--r-md); border: 1px solid var(--c-ink-4)">${buildFormHtml(initial)}</div>`;
+    const prodGroup = container.querySelector('#f-products-group');
     prodGroup.addEventListener('change', (e) => {
       const t = e.target;
-      if (!t.classList.contains('f-prod')) return;
+      if (!t.classList || !t.classList.contains('f-prod')) return;
       const allBox = prodGroup.querySelector('.f-prod[value="all"]');
       const specific = Array.from(prodGroup.querySelectorAll('.f-prod')).filter(b => b.value !== 'all');
-      if (t.value === 'all' && t.checked) {
-        specific.forEach(b => (b.checked = false));
-      } else if (t.value !== 'all' && t.checked) {
-        allBox.checked = false;
-      }
-      // If nothing is checked, default back to "all".
+      if (t.value === 'all' && t.checked) specific.forEach(b => (b.checked = false));
+      else if (t.value !== 'all' && t.checked) allBox.checked = false;
       const anyChecked = Array.from(prodGroup.querySelectorAll('.f-prod')).some(b => b.checked);
       if (!anyChecked) allBox.checked = true;
     });
+    container.querySelector('#f-cancel').onclick = collapse;
+    container.querySelector('#f-save').onclick = () => submitForm(container, initial);
+  }
 
-    form.querySelector('#cancel').onclick = () => form.remove();
-    form.querySelector('#save').onclick = async () => {
-      const code = form.querySelector('#f-code').value.trim();
-      const prodChecked = Array.from(prodGroup.querySelectorAll('.f-prod:checked')).map(b => b.value);
-      const productsValue = prodChecked.includes('all') || prodChecked.length === 0 ? 'all' : prodChecked.join(',');
-      const values = {
-        type: form.querySelector('#f-type').value,
-        value: Number(form.querySelector('#f-value').value),
-        minSAR: Number(form.querySelector('#f-min').value || 0),
-        products: productsValue,
-        startDate: form.querySelector('#f-start').value,
-        endDate: form.querySelector('#f-end').value,
-        usesLeft: form.querySelector('#f-cap').value === '' ? null : Number(form.querySelector('#f-cap').value),
-      };
-      if (isEdit) {
-        values.active = form.querySelector('#f-active').value === 'true';
-      }
-      try {
-        if (isEdit) {
-          // Build patch from values that differ from initial
-          const patch = {};
-          for (const [k, v] of Object.entries(values)) if (v !== initial[k]) patch[k] = v;
-          if (!Object.keys(patch).length) { form.remove(); return; }
-          const stage = await api('/api/writes/update_coupon', { method: 'POST', body: JSON.stringify({ code, patch }) });
-          form.remove();
-          openApprovalModal({
-            title: 'Confirm coupon update',
-            previewHtml: renderUpdateCouponPreview(stage.preview),
-            pendingWriteId: stage.id,
-            onApproved: async () => { coupons = (await api('/api/data/coupons')).coupons; render(); },
-          });
-        } else {
-          const stage = await api('/api/writes/create_coupon', {
-            method: 'POST',
-            body: JSON.stringify({ code, ...values }),
-          });
-          form.remove();
-          openApprovalModal({
-            title: 'Confirm coupon creation',
-            previewHtml: renderCreateCouponPreview(stage.preview),
-            pendingWriteId: stage.id,
-            onApproved: async () => { coupons = (await api('/api/data/coupons')).coupons; render(); },
-          });
-        }
-      } catch (e) {
-        form.querySelector('#fmsg').textContent = `Error: ${e.message}`;
-      }
+  function expandNew() {
+    collapse();
+    openCode = '__new__';
+    openFormInto(document.getElementById('new-slot'), {});
+  }
+
+  function expandRow(code) {
+    collapse();
+    openCode = code;
+    const tr = root.querySelector(`.coupon-expand[data-for="${CSS.escape(code)}"]`);
+    if (!tr) return;
+    tr.style.display = '';
+    const initial = coupons.find(c => c.code === code) || {};
+    openFormInto(tr.querySelector('.coupon-expand-inner'), initial);
+  }
+
+  async function submitForm(container, initial) {
+    const isEdit = !!initial.code;
+    const codeEl = container.querySelector('#f-code');
+    const code = codeEl.value.trim();
+    const prodGroup = container.querySelector('#f-products-group');
+    const prodChecked = Array.from(prodGroup.querySelectorAll('.f-prod:checked')).map(b => b.value);
+    const productsValue = prodChecked.includes('all') || prodChecked.length === 0 ? 'all' : prodChecked.join(',');
+    const values = {
+      type: container.querySelector('#f-type').value,
+      value: Number(container.querySelector('#f-value').value),
+      minSAR: Number(container.querySelector('#f-min').value || 0),
+      products: productsValue,
+      startDate: container.querySelector('#f-start').value,
+      endDate: container.querySelector('#f-end').value,
+      usesLeft: container.querySelector('#f-cap').value === '' ? null : Number(container.querySelector('#f-cap').value),
     };
+    if (isEdit) {
+      values.active = container.querySelector('#f-active').value === 'true';
+    }
+    const msgEl = container.querySelector('#f-msg');
+    try {
+      if (isEdit) {
+        const patch = {};
+        for (const [k, v] of Object.entries(values)) if (v !== initial[k]) patch[k] = v;
+        if (!Object.keys(patch).length) { collapse(); return; }
+        const stage = await api('/api/writes/update_coupon', { method: 'POST', body: JSON.stringify({ code, patch }) });
+        openApprovalModal({
+          title: 'Confirm coupon update',
+          previewHtml: renderUpdateCouponPreview(stage.preview),
+          pendingWriteId: stage.id,
+          onApproved: async () => { coupons = (await api('/api/data/coupons')).coupons; collapse(); render(); },
+        });
+      } else {
+        const stage = await api('/api/writes/create_coupon', {
+          method: 'POST',
+          body: JSON.stringify({ code, ...values }),
+        });
+        openApprovalModal({
+          title: 'Confirm coupon creation',
+          previewHtml: renderCreateCouponPreview(stage.preview),
+          pendingWriteId: stage.id,
+          onApproved: async () => { coupons = (await api('/api/data/coupons')).coupons; collapse(); render(); },
+        });
+      }
+    } catch (e) {
+      if (msgEl) msgEl.textContent = `Error: ${e.message}`;
+    }
+  }
+
+  function render() {
+    const rows = coupons.map(c => {
+      const st = status(c);
+      const tone = toneFor(st);
+      return `
+        <tr data-code="${escapeHtml(c.code)}" class="coupon-row" style="border-bottom: 0.5px solid var(--c-ink-4)">
+          <td style="padding: var(--s-3); font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--c-gold)"><code>${escapeHtml(c.code)}</code></td>
+          <td style="padding: var(--s-3); color: var(--c-fg-2); font-size: var(--fs-body-sm)">${escapeHtml(c.type)}</td>
+          <td style="padding: var(--s-3); font-size: var(--fs-body-sm)">${c.value}${c.type === 'percentage' ? '%' : ' SAR'}</td>
+          <td style="padding: var(--s-3); color: var(--c-fg-2); font-size: var(--fs-body-sm)">${escapeHtml(c.products)}</td>
+          <td style="padding: var(--s-3); color: var(--c-fg-2); font-size: var(--fs-body-sm)">${escapeHtml(c.endDate || '—')}</td>
+          <td style="padding: var(--s-3); color: var(--c-fg-2); font-size: var(--fs-body-sm)">${c.usesLeft ?? '∞'}</td>
+          <td style="padding: var(--s-3)"><span data-ui="tag" data-tone="${tone}">${st}</span></td>
+          <td style="padding: var(--s-3); text-align:right; white-space:nowrap">
+            <button data-ui="btn" data-variant="ghost" data-size="sm" data-icon-only data-action="edit"   data-code="${escapeHtml(c.code)}" aria-label="Edit">${icon('edit', { size: 16 })}</button>
+            <button data-ui="btn" data-variant="ghost" data-size="sm" data-icon-only data-action="toggle" data-code="${escapeHtml(c.code)}" aria-label="${c.active ? 'Deactivate' : 'Activate'}">${icon(c.active ? 'eye-off' : 'eye', { size: 16 })}</button>
+            <button data-ui="btn" data-variant="ghost" data-size="sm" data-icon-only data-action="delete" data-code="${escapeHtml(c.code)}" aria-label="Delete">${icon('trash-2', { size: 16 })}</button>
+          </td>
+        </tr>
+        <tr class="coupon-expand" data-for="${escapeHtml(c.code)}" style="display:none">
+          <td colspan="8" style="padding: 0; background: var(--c-ink-2)">
+            <div class="coupon-expand-inner" style="padding: var(--s-5)"></div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    root.innerHTML = `
+      <section style="max-width:1080px; margin:0 auto; display:grid; gap:var(--s-5)">
+
+        <header style="display:flex; justify-content:space-between; align-items:center; gap:var(--s-3); flex-wrap:wrap">
+          <div style="color:var(--c-fg-2); font-size:var(--fs-body-sm)">Discount codes for checkout. Moyasar reads the active coupon set on every order.</div>
+          <button data-ui="btn" data-variant="primary" id="new-btn">New coupon</button>
+        </header>
+
+        <div id="new-slot"></div>
+
+        <table class="coupons-table" style="width:100%; border-collapse: collapse">
+          <thead>
+            <tr>
+              ${['Code','Type','Value','Products','Expires','Uses left','Status',''].map(h => `
+                <th style="text-align:left; padding: var(--s-2) var(--s-3); font-size: var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color: var(--c-fg-3); border-bottom: 0.5px solid var(--c-ink-4);">${h}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </section>`;
+
+    document.getElementById('new-btn').onclick = expandNew;
+    for (const b of root.querySelectorAll('button[data-action=edit]'))   b.onclick = () => expandRow(b.dataset.code);
+    for (const b of root.querySelectorAll('button[data-action=toggle]')) b.onclick = () => quickToggle(b.dataset.code);
+    for (const b of root.querySelectorAll('button[data-action=delete]')) b.onclick = () => deleteCoupon(b.dataset.code);
   }
 
   async function quickToggle(code) {
@@ -202,7 +253,7 @@ export default async function mount(root) {
       openApprovalModal({
         title: 'Confirm permanent delete',
         previewHtml: `
-          <p style="color:var(--red)"><strong>Permanent delete</strong> — cannot be undone.</p>
+          <p style="color:var(--c-danger)"><strong>Permanent delete</strong> — cannot be undone.</p>
           <table class="preview-table">
             <tr><th>Code</th><td><code>${escapeHtml(stage.preview.code)}</code></td></tr>
             <tr><th>Type</th><td>${escapeHtml(stage.preview.type)}</td></tr>
