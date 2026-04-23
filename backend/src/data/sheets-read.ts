@@ -57,11 +57,11 @@ export async function readCustomers(sheets: SheetsClient, sheetId: string): Prom
  */
 export type SheetRow = Record<string, string>;
 
-export async function readSheet(opts: { tab: string }): Promise<SheetRow[]> {
+export async function readSheet(opts: { tab: string; sheetId?: string }): Promise<SheetRow[]> {
   const clientId = process.env.BACKEND_OAUTH_CLIENT_ID;
   const clientSecret = process.env.BACKEND_OAUTH_CLIENT_SECRET;
   const refresh = process.env.BACKEND_OAUTH_REFRESH_TOKEN;
-  const sheetId = process.env.SHEET_ID;
+  const sheetId = opts.sheetId ?? process.env.SHEET_ID;
   if (!clientId || !clientSecret || !refresh || !sheetId) {
     throw new Error('readSheet: missing env (SHEET_ID / BACKEND_OAUTH_*)');
   }

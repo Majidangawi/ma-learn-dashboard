@@ -12,6 +12,10 @@ const schema = z.object({
   // can live on a different sheet from the shared business data (Tokens,
   // Lessons, Customers, etc.). When unset, falls back to SHEET_ID.
   SHEET_ID_ADMIN: z.string().min(1).optional(),
+  // Waitlist — potential customers captured via Crafting Inspiration Workshop
+  // landing page. Separate sheet, Arabic headers. When unset, waitlist is
+  // skipped (contacts will only include buyers + subscribers).
+  SHEET_ID_WAITLIST: z.string().min(1).optional(),
   APPS_SCRIPT_URL: z.string().url().optional().or(z.literal('')),
   BACKEND_OAUTH_CLIENT_ID: z.string().min(1),
   BACKEND_OAUTH_CLIENT_SECRET: z.string().min(1),
