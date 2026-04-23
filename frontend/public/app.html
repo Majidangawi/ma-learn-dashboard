@@ -28,40 +28,40 @@
 </style>
 </head>
 <body>
-<div class="app-shell" id="shell"></div>
+<link rel="stylesheet" href="css/shell.css">
+<div class="shell" id="shell">
+  <main class="shell-content" id="content"></main>
+</div>
 <script type="module">
-  import { me, logout } from './js/session.js';
-  import { mountEnvBadge } from './js/ui/env-badge.js';
-  import { mountSidebar } from './js/ui/sidebar.js';
-  import { API_BASE } from './js/api.js';
-  import { startRouter } from './js/router.js';
+  import { me } from './js/session.js';
+  import { mountSidebar } from './js/ui/sidebar-v2.js';
+  import { mountTopbar }  from './js/ui/topbar.js';
+  import { mountRail }    from './js/ui/rail.js';
+  import { API_BASE }     from './js/api.js';
+  import { startRouter }  from './js/router.js';
 
-  const shell = document.getElementById('shell');
-  const contentWrap = document.createElement('div');
-  contentWrap.className = 'content';
-  const side = mountSidebar(shell);
-  shell.appendChild(contentWrap);
+  const shell   = document.getElementById('shell');
+  const content = document.getElementById('content');
 
-  try { await me(); } catch { location.href = 'index.html'; }
+  // Sidebar mounts first (grid-area: sidebar), topbar second, rail third.
+  // The content element is already in place.
+  const side = mountSidebar(shell, { user: 'Majid', env: 'staging' });
+  const top  = mountTopbar(shell);
+  mountRail(shell);
 
-  const topbar = document.createElement('div');
-  topbar.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:8px 0 16px 0;border-bottom:1px solid var(--border);margin-bottom:16px;';
-  topbar.innerHTML = `<div></div><button class="btn-ghost" id="logout-btn">Log out</button>`;
-  contentWrap.appendChild(topbar);
-  document.getElementById('logout-btn').onclick = async () => { await logout(); location.href = 'index.html'; };
+  try { await me(); }
+  catch { location.href = 'index.html'; }
 
-  const pageHost = document.createElement('div');
-  contentWrap.appendChild(pageHost);
+  await startRouter({
+    content,
+    onRouteChange: (pageId) => { side.setActive(pageId); top.setTitle(pageId); },
+  });
 
-  await startRouter({ content: pageHost, sidebar: side });
-
-  const { mountNoorWidget } = await import('./js/ui/noor-widget.js');
-  mountNoorWidget();
-
-  fetch(API_BASE + '/health')
-    .then((r) => r.json())
-    .then((b) => mountEnvBadge(b.environment))
-    .catch(() => mountEnvBadge('unknown'));
+  // Reflect live env on the sidebar foot dot
+  fetch(API_BASE + '/health').then(r => r.json()).then(b => {
+    const dot = shell.querySelector('.env-dot');
+    if (dot) dot.setAttribute('data-env', b.environment || 'staging');
+  }).catch(() => {});
 </script>
 </body>
 </html>

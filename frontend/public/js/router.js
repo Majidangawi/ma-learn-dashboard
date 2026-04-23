@@ -1,43 +1,47 @@
 const ROUTES = {
-  home: () => import('./pages/home.js'),
-  lessons: () => import('./pages/lessons.js'),
-  emails: () => import('./pages/emails.js'),
-  newsletter: () => import('./pages/newsletter.js'),
-  contacts: () => import('./pages/contacts.js'),
-  coupons: () => import('./pages/coupons.js'),
-  linkbio: () => import('./pages/linkbio.js'),
-  noor: () => import('./pages/noor-chat.js'),
+  home:      () => import('./pages/home.js'),
+  lessons:   () => import('./pages/lessons.js'),
+  emails:    () => import('./pages/emails.js'),
+  newsletter:() => import('./pages/newsletter.js'),
+  contacts:  () => import('./pages/contacts.js'),
+  coupons:   () => import('./pages/coupons.js'),
+  linkbio:   () => import('./pages/linkbio.js'),
 };
 
-export async function startRouter({ content, sidebar }) {
+export async function startRouter({ content, onRouteChange }) {
   async function render() {
-    // Strip leading `#` and any following `/` so both `#newsletter` and
-    // `#/newsletter` route to the same page.
+    // Noor retired as a page; lives in the rail now.
+    if (location.hash === '#noor' || location.hash === '#/noor') {
+      location.hash = '#home';
+      return;
+    }
+
     const hash = location.hash.replace(/^#\/?/, '') || 'home';
 
-    // Parametric routes first. Today: #/newsletter/:id/stats.
+    // Parametric route: #/newsletter/:id/stats
     const statsMatch = hash.match(/^newsletter\/([^/]+)\/stats$/);
     if (statsMatch) {
-      sidebar.setActive('newsletter');
-      content.innerHTML = '<p style="color:var(--silver)">Loading…</p>';
+      onRouteChange?.('newsletter');
+      content.innerHTML = '<p style="color:var(--c-fg-3)">Loading…</p>';
       try {
         const mod = await import('./pages/newsletter-stats.js');
         await mod.default(content, { id: decodeURIComponent(statsMatch[1]) });
       } catch (e) {
-        content.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+        content.innerHTML = `<p style="color:var(--c-danger)">Error: ${e.message}</p>`;
       }
       return;
     }
 
     const [pageId, ...rest] = hash.split('/');
     const loader = ROUTES[pageId] || ROUTES.home;
-    sidebar.setActive(pageId);
-    content.innerHTML = '<p style="color:var(--silver)">Loading…</p>';
+    const effectivePageId = ROUTES[pageId] ? pageId : 'home';
+    onRouteChange?.(effectivePageId);
+    content.innerHTML = '<p style="color:var(--c-fg-3)">Loading…</p>';
     try {
       const mod = await loader();
       await mod.default(content, { params: rest });
     } catch (e) {
-      content.innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
+      content.innerHTML = `<p style="color:var(--c-danger)">Error: ${e.message}</p>`;
     }
   }
   window.addEventListener('hashchange', render);
