@@ -1,7 +1,9 @@
-// sidebar-v2.js — Editorial Atelier sidebar with section headers, ⌘K search,
-// and a collapsible Noor chat panel pinned at the bottom.
+// sidebar-v2.js — Editorial Atelier sidebar. Section headers, ⌘K search,
+// and two collapsible panels pinned at the bottom: Activity feed + Noor chat.
+// The right rail is retired — this sidebar holds every operational surface.
 import { icon } from './icons.js';
 import { mountNoorInRail } from './noor-widget.js';
+import { mountActivityFeed } from './activity-feed.js';
 
 const NAV = [
   { section: 'DASHBOARD', items: [
@@ -43,12 +45,19 @@ export function mountSidebar(root, { user = 'Majid', env = 'staging' } = {}) {
             </a>`).join('')}
         </div>`).join('')}
     </nav>
-    <section class="sidebar-noor" id="sidebar-noor-section">
-      <header class="sidebar-noor-head" id="sidebar-noor-head">
+    <section class="sidebar-pane" id="sidebar-activity-section" data-pane="activity">
+      <header class="sidebar-pane-head" id="sidebar-activity-head">
+        <span>Activity</span>
+        <span class="toggle-icon">${icon('chevron-down', { size: 16 })}</span>
+      </header>
+      <div class="sidebar-pane-body" id="sidebar-activity-body"></div>
+    </section>
+    <section class="sidebar-pane" id="sidebar-noor-section" data-pane="noor">
+      <header class="sidebar-pane-head" id="sidebar-noor-head">
         <span>Noor</span>
         <span class="toggle-icon">${icon('chevron-down', { size: 16 })}</span>
       </header>
-      <div class="sidebar-noor-body" id="sidebar-noor-body"></div>
+      <div class="sidebar-pane-body" id="sidebar-noor-body"></div>
     </section>
     <div class="sidebar-foot">
       <span class="env-dot" data-env="${env}" title="${env}"></span>
@@ -56,21 +65,25 @@ export function mountSidebar(root, { user = 'Majid', env = 'staging' } = {}) {
     </div>`;
   root.appendChild(el);
 
-  // Noor chat panel — collapsed by default, persists collapse state.
-  const noorSection = el.querySelector('#sidebar-noor-section');
-  const noorBody    = el.querySelector('#sidebar-noor-body');
-  const noorHead    = el.querySelector('#sidebar-noor-head');
-  const noorKey     = 'sidebar.noor.collapsed';
-  if (localStorage.getItem(noorKey) !== '0') noorSection.classList.add('collapsed');
-  let noorMounted = false;
-  noorHead.onclick = () => {
-    noorSection.classList.toggle('collapsed');
-    const collapsed = noorSection.classList.contains('collapsed');
-    localStorage.setItem(noorKey, collapsed ? '1' : '0');
-    if (!collapsed && !noorMounted) { mountNoorInRail(noorBody); noorMounted = true; }
-  };
-  // If the panel was expanded last session, mount immediately.
-  if (!noorSection.classList.contains('collapsed')) { mountNoorInRail(noorBody); noorMounted = true; }
+  // Collapsible pane helper — state persists; content mounts on first open.
+  function wirePane(sectionId, storageKey, mountFn) {
+    const section = el.querySelector('#' + sectionId);
+    const head    = section.querySelector('.sidebar-pane-head');
+    const body    = section.querySelector('.sidebar-pane-body');
+    let mounted   = false;
+    const ensureMounted = () => { if (!mounted) { mountFn(body); mounted = true; } };
+    // Default: collapsed unless localStorage says otherwise.
+    if (localStorage.getItem(storageKey) !== '0') section.classList.add('collapsed');
+    else ensureMounted();
+    head.onclick = () => {
+      section.classList.toggle('collapsed');
+      const collapsed = section.classList.contains('collapsed');
+      localStorage.setItem(storageKey, collapsed ? '1' : '0');
+      if (!collapsed) ensureMounted();
+    };
+  }
+  wirePane('sidebar-activity-section', 'sidebar.activity.collapsed', mountActivityFeed);
+  wirePane('sidebar-noor-section',     'sidebar.noor.collapsed',     mountNoorInRail);
 
   // Focus the search input on ⌘K / Ctrl+K
   document.addEventListener('keydown', e => {

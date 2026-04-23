@@ -30,25 +30,35 @@
 </head>
 <body>
 <link rel="stylesheet" href="css/shell.css">
-<div class="shell" id="shell">
+<div id="boot-loader" data-ui="loader-overlay">
+  <div data-ui="loader">
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="text"><span>جاري صناعة الإلهام</span></div>
+    <div class="line"></div>
+  </div>
+</div>
+<div class="shell" id="shell" style="visibility:hidden">
   <main class="shell-content" id="content"></main>
 </div>
 <script type="module">
   import { me } from './js/session.js';
   import { mountSidebar } from './js/ui/sidebar-v2.js';
   import { mountTopbar }  from './js/ui/topbar.js';
-  import { mountRail }    from './js/ui/rail.js';
   import { API_BASE }     from './js/api.js';
   import { startRouter }  from './js/router.js';
 
   const shell   = document.getElementById('shell');
   const content = document.getElementById('content');
 
-  // Sidebar mounts first (grid-area: sidebar), topbar second, rail third.
-  // The content element is already in place.
   const side = mountSidebar(shell, { user: 'Majid', env: 'staging' });
   const top  = mountTopbar(shell);
-  mountRail(shell);
 
   try { await me(); }
   catch { location.href = 'index.html'; }
@@ -57,6 +67,11 @@
     content,
     onRouteChange: (pageId) => { side.setActive(pageId); top.setTitle(pageId); },
   });
+
+  // Reveal shell + tear down boot loader
+  shell.style.visibility = 'visible';
+  const boot = document.getElementById('boot-loader');
+  if (boot) boot.remove();
 
   // Reflect live env on the sidebar foot dot
   fetch(API_BASE + '/health').then(r => r.json()).then(b => {

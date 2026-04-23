@@ -1,21 +1,19 @@
 .shell {
   display: grid;
-  grid-template-columns: 240px 1fr 320px;
+  grid-template-columns: 260px 1fr;
   grid-template-rows: 56px 1fr;
   grid-template-areas:
-    "sidebar topbar  rail"
-    "sidebar content rail";
+    "sidebar topbar"
+    "sidebar content";
   min-height: 100dvh; height: 100dvh;
   background: var(--c-ink-0);
 }
 .shell-sidebar { grid-area: sidebar; background: var(--c-ink-1); border-right: 1px solid var(--c-ink-4); display: flex; flex-direction: column; }
 .shell-topbar  { grid-area: topbar;  border-bottom: 0.5px solid var(--c-gold-dim); display: flex; align-items: center; padding: 0 var(--s-5); gap: var(--s-4); }
 .shell-content { grid-area: content; overflow-y: auto; padding: var(--s-6) var(--s-page-x); }
-.shell-rail    { grid-area: rail; border-left: 0.5px solid var(--c-gold-dim); display: flex; flex-direction: column; }
+.shell-rail    { display: none; } /* retired — panes moved into sidebar */
 
-/* Collapse rail below 1280px, sidebar below 1024px */
-@media (max-width: 1280px) { .shell { grid-template-columns: 240px 1fr 56px; } .shell-rail.collapsed { padding: var(--s-3) 0; } }
-@media (max-width: 1024px) { .shell { grid-template-columns: 56px 1fr 56px; } }
+@media (max-width: 1024px) { .shell { grid-template-columns: 56px 1fr; } }
 
 /* Sidebar anatomy */
 .sidebar-head { padding: var(--s-4) var(--s-5); display: flex; align-items: center; gap: var(--s-3); height: 56px; border-bottom: 0.5px solid var(--c-gold-dim); }
@@ -35,14 +33,16 @@
 .sidebar-foot .env-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-warning); }
 .sidebar-foot .env-dot[data-env="production"] { background: var(--c-success); }
 
-/* Noor chat — pinned in the sidebar above the foot. Collapsed by default. */
-.sidebar-noor { border-top: 0.5px solid var(--c-ink-4); display: flex; flex-direction: column; flex-shrink: 0; }
-.sidebar-noor-head { height: 40px; padding: 0 var(--s-5); display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-gold-bright); cursor: pointer; user-select: none; }
-.sidebar-noor-head:hover { background: var(--c-ink-3); }
-.sidebar-noor-head .toggle-icon { color: var(--c-fg-3); transition: transform var(--dur-fast) var(--ease-out); }
-.sidebar-noor.collapsed .sidebar-noor-head .toggle-icon { transform: rotate(-90deg); }
-.sidebar-noor-body { height: 40vh; min-height: 240px; padding: 0 var(--s-4) var(--s-3); display: flex; flex-direction: column; overflow: hidden; border-top: 0.5px solid var(--c-ink-4); }
-.sidebar-noor.collapsed .sidebar-noor-body { display: none; }
+/* Collapsible panes pinned at the bottom of the sidebar (Activity, Noor).
+   Both default collapsed; state persists per pane in localStorage. */
+.sidebar-pane { border-top: 0.5px solid var(--c-ink-4); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-pane-head { height: 40px; padding: 0 var(--s-5); display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-fg-2); cursor: pointer; user-select: none; }
+.sidebar-pane[data-pane="noor"] .sidebar-pane-head { color: var(--c-gold-bright); }
+.sidebar-pane-head:hover { background: var(--c-ink-3); }
+.sidebar-pane-head .toggle-icon { color: var(--c-fg-3); transition: transform var(--dur-fast) var(--ease-out); }
+.sidebar-pane.collapsed .sidebar-pane-head .toggle-icon { transform: rotate(-90deg); }
+.sidebar-pane-body { height: 32vh; min-height: 200px; padding: var(--s-2) var(--s-4) var(--s-3); display: flex; flex-direction: column; overflow-y: auto; border-top: 0.5px solid var(--c-ink-4); }
+.sidebar-pane.collapsed .sidebar-pane-body { display: none; }
 
 /* Topbar anatomy */
 .topbar-title { flex: 1; min-width: 0; }
