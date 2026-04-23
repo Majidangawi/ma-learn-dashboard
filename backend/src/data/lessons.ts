@@ -12,10 +12,10 @@ export interface LessonContent {
 }
 
 const COURSE_LABELS: Record<string, string> = {
-  'intro-to-creative-ai':    'T2',
-  'creative-ai-workshop-t3': 'T3',
+  'intro-to-creative-ai':    'ITCAI',
+  'creative-ai-workshop-t3': 'Creative AI Workshop',
   'beyond-lighting':         'BL',
-  'prompt-pack':             'PP',
+  'prompt-pack':             'Prompt Pack',
 };
 
 export function deriveCourses(rows: Record<string, unknown>[]): Course[] {

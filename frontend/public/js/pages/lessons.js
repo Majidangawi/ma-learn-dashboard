@@ -2,10 +2,10 @@ import { api } from '../api.js';
 import { mountComposer } from '../composer/index.js';
 
 const PRODUCT_LABELS = {
-  'intro-to-creative-ai':    'T2',
-  'creative-ai-workshop-t3': 'T3',
+  'intro-to-creative-ai':    'ITCAI',
+  'creative-ai-workshop-t3': 'Creative AI Workshop',
   'beyond-lighting':         'BL',
-  'prompt-pack':             'PP',
+  'prompt-pack':             'Prompt Pack',
 };
 
 // Bunny library IDs per course (confirmed by Majid 2026-04-23).
