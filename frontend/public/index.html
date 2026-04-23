@@ -11,7 +11,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@200;400;500;700;900&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://accounts.google.com">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
   // Redirect link.malearnsa.com + link-staging to the public linkbio page.
   if (
@@ -22,7 +21,15 @@
   ) {
     location.replace('link.html');
   }
+
+  // Google Identity Services auto-reads `data-callback="onGoogleCredential"`
+  // BEFORE the <script type="module"> below can assign it to window, so we
+  // define it synchronously here. It fans out to module listeners via event.
+  window.onGoogleCredential = function (res) {
+    window.dispatchEvent(new CustomEvent('google-credential', { detail: res }));
+  };
 </script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
 <div class="login-card">
@@ -53,10 +60,11 @@
   const btn = document.getElementById('login-btn');
   const errEl = document.getElementById('error');
 
-  window.onGoogleCredential = (res) => {
-    googleIdToken = res.credential;
-    btn.disabled = false;
-  };
+  // Listen for the credential event fired by the synchronous handler above.
+  window.addEventListener('google-credential', (e) => {
+    googleIdToken = e.detail && e.detail.credential ? e.detail.credential : null;
+    if (googleIdToken) btn.disabled = false;
+  });
 
   btn.onclick = async () => {
     errEl.textContent = '';
