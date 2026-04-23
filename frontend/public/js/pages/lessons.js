@@ -115,7 +115,7 @@ export default async function mount(root) {
     el.innerHTML = state.courses.map(c => `
       <button class="lessons-tab ${c.id === state.activeCourse ? 'active' : ''}" data-id="${escapeHtml(c.id)}">
         ${escapeHtml(c.label)} <span class="count">· ${c.lessonCount}</span>
-      </button>`).join('') || '<span style="color:var(--c-ink-3);padding:8px">No courses found</span>';
+      </button>`).join('') || '<span style="color:var(--c-fg-3);padding:8px">No courses found</span>';
     el.querySelectorAll('.lessons-tab').forEach(btn => {
       btn.onclick = async () => {
         state.activeCourse = btn.dataset.id;
@@ -206,16 +206,16 @@ export default async function mount(root) {
       <h2>${escapeHtml(l.title || '—')}</h2>
 
       <label>Title</label>
-      <input type="text" id="f-title" value="${escapeHtml(l.title || '')}" />
+      <input type="text" data-ui="input" id="f-title" value="${escapeHtml(l.title || '')}" />
 
       <label>Video ID (Bunny GUID)</label>
-      <input type="text" id="f-video" value="${escapeHtml(vid)}" placeholder="e.g. ab12cd34-..." />
+      <input type="text" data-ui="input" id="f-video" value="${escapeHtml(vid)}" placeholder="e.g. ab12cd34-..." />
       <div class="lessons-video-preview ${iframeSrc ? '' : 'empty'}" id="f-video-preview">
         ${iframeSrc ? `<iframe src="${escapeHtml(iframeSrc)}" allowfullscreen></iframe>` : 'No video ID yet'}
       </div>
 
       <label>PDF URL</label>
-      <input type="url" id="f-pdf" value="${escapeHtml(state.draftMedia.pdfUrl || '')}" placeholder="https://..." />
+      <input type="url" data-ui="input" id="f-pdf" value="${escapeHtml(state.draftMedia.pdfUrl || '')}" placeholder="https://..." />
 
       <label>Status</label>
       <label class="lessons-active-toggle">
@@ -227,11 +227,11 @@ export default async function mount(root) {
       <div id="f-composer"></div>
 
       <div class="lessons-actions">
-        <button class="primary" id="f-save">Save changes</button>
-        <button id="f-open-player">Open in player ↗</button>
-        <button class="danger" id="f-delete">🗑 Delete</button>
+        <button data-ui="btn" data-variant="primary" id="f-save">Save changes</button>
+        <button data-ui="btn" data-variant="secondary" id="f-open-player">Open in player ↗</button>
+        <button data-ui="btn" data-variant="danger" id="f-delete">Delete</button>
       </div>
-      <div id="f-msg" style="color:var(--c-ink-3);font-size:.85rem;margin-top:var(--sp-3)"></div>
+      <div id="f-msg" style="color:var(--c-fg-3);font-size:var(--fs-label);margin-top:var(--s-3)"></div>
     `;
 
     document.getElementById('f-video').oninput = (e) => {
@@ -328,13 +328,13 @@ export default async function mount(root) {
           <div class="e">${l.video_id ? 'Video: ' + escapeHtml(l.video_id) : '<em>no video</em>'}</div>
           <div class="facts">PDF: ${l.pdf_url ? escapeHtml(l.pdf_url) : '—'}<br>Active: ${l.active ? 'yes' : 'no'}</div>
         </div>
-        <p style="color:var(--c-ink-2);font-size:.85rem;line-height:1.5">
+        <p style="color:var(--c-fg-2);font-size:var(--fs-body-sm);line-height:1.5">
           This removes the row from the Lessons sheet AND the LessonContent row.
           Students who bookmarked the deep link will see a 404.
         </p>
         <div class="modal-actions">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="x-cancel">Cancel</button>
-          <button class="btn-primary" data-ui="btn" data-variant="primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete lesson</button>
+          <button data-ui="btn" data-variant="ghost" id="x-cancel">Cancel</button>
+          <button data-ui="btn" data-variant="danger" id="x-go">Delete lesson</button>
         </div>
         <div class="modal-msg" id="x-msg"></div>
       </div>`;
@@ -399,8 +399,8 @@ export default async function mount(root) {
         </div>
         <div class="form-field"><label>Title</label><input id="a-title" /></div>
         <div class="modal-actions">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="a-cancel">Cancel</button>
-          <button class="btn-primary" data-ui="btn" data-variant="primary" id="a-go">Add lesson</button>
+          <button data-ui="btn" data-variant="ghost" id="a-cancel">Cancel</button>
+          <button data-ui="btn" data-variant="primary" id="a-go">Add lesson</button>
         </div>
         <div class="modal-msg" id="a-msg"></div>
       </div>`;
