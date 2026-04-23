@@ -328,8 +328,8 @@ export default async function mount(root) {
         </div>
         <div id="e-composer"></div>
         <div class="modal-actions">
-          <button class="btn-ghost" id="e-cancel">Cancel</button>
-          <button class="btn-primary" id="e-send">Send</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="e-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="e-send">Send</button>
         </div>
         <div class="modal-msg" id="e-msg"></div>
       </div>`;
@@ -423,8 +423,8 @@ export default async function mount(root) {
           <textarea id="g-note" rows="3"></textarea>
         </div>
         <div class="modal-actions">
-          <button class="btn-ghost" id="g-cancel">Cancel</button>
-          <button class="btn-primary" id="g-go">Gift it</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="g-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="g-go">Gift it</button>
         </div>
         <div class="modal-msg" id="g-msg"></div>
       </div>`;
@@ -480,8 +480,8 @@ export default async function mount(root) {
           To fully revoke access, edit the Tokens sheet directly.
         </p>
         <div class="modal-actions">
-          <button class="btn-ghost" id="x-cancel">Cancel</button>
-          <button class="btn-primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete this contact</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="x-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete this contact</button>
         </div>
         <div class="modal-msg" id="x-msg"></div>
       </div>`;

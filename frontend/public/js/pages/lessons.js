@@ -333,8 +333,8 @@ export default async function mount(root) {
           Students who bookmarked the deep link will see a 404.
         </p>
         <div class="modal-actions">
-          <button class="btn-ghost" id="x-cancel">Cancel</button>
-          <button class="btn-primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete lesson</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="x-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete lesson</button>
         </div>
         <div class="modal-msg" id="x-msg"></div>
       </div>`;
@@ -399,8 +399,8 @@ export default async function mount(root) {
         </div>
         <div class="form-field"><label>Title</label><input id="a-title" /></div>
         <div class="modal-actions">
-          <button class="btn-ghost" id="a-cancel">Cancel</button>
-          <button class="btn-primary" id="a-go">Add lesson</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="a-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="a-go">Add lesson</button>
         </div>
         <div class="modal-msg" id="a-msg"></div>
       </div>`;

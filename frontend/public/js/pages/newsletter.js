@@ -35,7 +35,7 @@ export default async function mount(root) {
         <p style="color:var(--silver);margin:4px 0 14px;font-size:.9rem">
           ${subCount.active.toLocaleString()} active · ${subCount.unsubscribed.toLocaleString()} unsubscribed
         </p>
-        <button class="btn-primary" id="new-btn">+ New newsletter</button>
+        <button class="btn-primary" data-ui="btn" data-variant="primary" id="new-btn">+ New newsletter</button>
       </div>
 
       <div class="tabs" style="margin:18px 0">
@@ -108,10 +108,10 @@ export default async function mount(root) {
         </div>
         <div id="n-composer"></div>
         <div class="modal-actions">
-          <button class="btn-ghost" id="n-cancel">Close</button>
-          <button class="btn-ghost" id="n-save">Save draft</button>
-          <button class="btn-ghost" id="n-schedule">Schedule…</button>
-          <button class="btn-primary" id="n-send">Send now</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-cancel">Close</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-save">Save draft</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-schedule">Schedule…</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="n-send">Send now</button>
         </div>
         <div class="modal-msg" id="n-msg"></div>
       </div>`;
