@@ -8,10 +8,10 @@ const PRODUCT_LABELS = {
   'prompt-pack':             'PP',
 };
 
-// Bunny library IDs per course (filled in during smoke-test — placeholders here).
+// Bunny library IDs per course (confirmed by Majid 2026-04-23).
 const BUNNY_LIB = {
-  'intro-to-creative-ai':    '637491',   // T2 Bunny library
-  'beyond-lighting':         '637492',   // BL Bunny library (verify in staging)
+  'intro-to-creative-ai':    '637491',   // T2 (ITCAI) Bunny library
+  'beyond-lighting':         '634652',   // BL Bunny library
 };
 
 function escapeHtml(s) {
