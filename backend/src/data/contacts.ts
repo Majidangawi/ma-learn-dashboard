@@ -47,7 +47,8 @@ export function joinContactList(
   custs: Record<string, unknown>[],
   _tokens: Record<string, unknown>[],
 ): ContactListRow[] {
-  // Index customer rows by email → list of purchases (order preserved for lastActivity).
+  // Index customers + subscribers by email. A contact = the UNION of both sides;
+  // buyers without a subscribe row still surface (was previously subs-driven only).
   const custsByEmail = new Map<string, Record<string, unknown>[]>();
   for (const c of custs) {
     const email = lc(c.Email);
@@ -56,33 +57,40 @@ export function joinContactList(
     arr.push(c);
     custsByEmail.set(email, arr);
   }
+  const subsByEmail = new Map<string, Record<string, unknown>>();
+  for (const s of subs) {
+    const email = lc(s.Email);
+    if (email) subsByEmail.set(email, s);
+  }
 
-  return subs
-    .map(s => {
-      const email = lc(s.Email);
-      if (!email) return null;
-      const custRows = custsByEmail.get(email) ?? [];
-      const productsBought = Array.from(new Set(custRows.map(c => String(c.Product ?? '')).filter(Boolean)));
-      const lastPurchasedAt = custRows
-        .map(c => String(c.Date ?? '').replace(' ', 'T'))
-        .filter(Boolean)
-        .sort()
-        .pop() ?? '';
-      const lastSourceAt = String(s.LastSourceAt ?? '');
-      const statusRaw = String(s.Status ?? 'active') as 'active' | 'unsubscribed' | 'bounced';
-      return {
-        email,
-        name: String(s.Name ?? ''),
-        language: (String(s.Language ?? 'AR') === 'EN' ? 'EN' : 'AR') as 'AR' | 'EN',
-        sources: parseSources(s.Sources),
-        status: statusRaw,
-        hasBought: productsBought.length > 0,
-        productsBought,
-        addedAt: String(s.AddedAt ?? ''),
-        lastActivityAt: maxIso(lastSourceAt, lastPurchasedAt),
-      };
-    })
-    .filter((r): r is ContactListRow => r !== null);
+  const allEmails = new Set<string>([...custsByEmail.keys(), ...subsByEmail.keys()]);
+
+  return Array.from(allEmails).map(email => {
+    const s = subsByEmail.get(email);
+    const custRows = custsByEmail.get(email) ?? [];
+    const productsBought = Array.from(new Set(custRows.map(c => String(c.Product ?? '')).filter(Boolean)));
+    const lastPurchasedAt = custRows
+      .map(c => String(c.Date ?? '').replace(' ', 'T'))
+      .filter(Boolean)
+      .sort()
+      .pop() ?? '';
+    const customerName = String(custRows.find(c => String(c.Name ?? '').trim())?.Name ?? '');
+    const name = String(s?.Name ?? '').trim() || customerName;
+    const lastSourceAt = String(s?.LastSourceAt ?? '');
+    const statusRaw = (String(s?.Status ?? 'active') as 'active' | 'unsubscribed' | 'bounced');
+    const sources = s ? parseSources(s.Sources) : (productsBought.length ? ['buyer'] : []);
+    return {
+      email,
+      name,
+      language: (String(s?.Language ?? 'AR') === 'EN' ? 'EN' : 'AR') as 'AR' | 'EN',
+      sources,
+      status: statusRaw,
+      hasBought: productsBought.length > 0,
+      productsBought,
+      addedAt: String(s?.AddedAt ?? lastPurchasedAt ?? ''),
+      lastActivityAt: maxIso(lastSourceAt, lastPurchasedAt),
+    };
+  });
 }
 
 export function joinContactDetail(
@@ -93,11 +101,12 @@ export function joinContactDetail(
 ): ContactDetail | null {
   const target = lc(email);
   const sub = subs.find(s => lc(s.Email) === target);
-  if (!sub) return null;
   const custRows = custs.filter(c => lc(c.Email) === target);
   const tokRows = tokens.filter(t => lc(t['Customer Email']) === target);
+  // Contact must exist on at least one side (subscriber OR customer).
+  if (!sub && custRows.length === 0) return null;
 
-  const list = joinContactList([sub], custRows, tokRows)[0]!;
+  const list = joinContactList(sub ? [sub] : [], custRows, tokRows)[0]!;
   const phone = String(custRows.find(c => String(c.Phone ?? '').trim())?.Phone ?? '');
 
   const purchases = custRows
