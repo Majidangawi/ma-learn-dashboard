@@ -78,4 +78,22 @@ describe('applyFilter', () => {
     });
     expect(out).toEqual([]);
   });
+
+  it('with onlyEmails, returns ONLY matching emails ignoring other filters', () => {
+    const subs: Subscriber[] = [
+      { email: 'a@x.com', name: 'A', sources: ['waitlist'], language: 'AR', addedAt: '', lastSourceAt: '', status: 'active', unsubscribeToken: '' },
+      { email: 'b@x.com', name: 'B', sources: ['buyer'],    language: 'EN', addedAt: '', lastSourceAt: '', status: 'active', unsubscribeToken: '' },
+      { email: 'c@x.com', name: 'C', sources: ['buyer'],    language: 'AR', addedAt: '', lastSourceAt: '', status: 'active', unsubscribeToken: '' },
+    ];
+    const result = applyFilter(subs, { onlyEmails: ['b@x.com'], sources: ['waitlist'], language: 'AR' });
+    expect(result).toHaveLength(1);
+    expect(result[0].email).toBe('b@x.com');
+  });
+
+  it('with onlyEmails, still excludes unsubscribed when excludeUnsub=true (default)', () => {
+    const subs: Subscriber[] = [
+      { email: 'a@x.com', name: 'A', sources: ['buyer'], language: 'AR', addedAt: '', lastSourceAt: '', status: 'unsubscribed', unsubscribeToken: '' },
+    ];
+    expect(applyFilter(subs, { onlyEmails: ['a@x.com'] })).toHaveLength(0);
+  });
 });
