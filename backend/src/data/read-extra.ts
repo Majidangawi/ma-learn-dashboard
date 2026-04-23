@@ -2,7 +2,12 @@ import type { SheetsClient } from './sheets-client.js';
 import type { Block } from '../mail/blocks.js';
 import { markdownToBlocks } from '../mail/migrate-markdown.js';
 
-export interface Lesson { lessonId: string; course: string; module: string; moduleOrder: number; title: string; active: boolean; order: number; }
+export interface Lesson {
+  lessonId: string; course: string; module: string; moduleOrder: number; title: string; active: boolean; order: number;
+  // Aliases + extra fields consumed by the dashboard Lessons page.
+  id: string; module_order: number; lesson_order: number;
+  video_id: string; pdf_url: string; description: string;
+}
 export interface Token { token: string; product: string; email: string; status: string; assignedAt: string; }
 export interface Coupon {
   code: string; type: string; value: number; minSAR: number;
@@ -48,11 +53,24 @@ export function parseLessons(rows: string[][] | undefined): Lesson[] {
   const iModuleOrder = idx(h, 'Module Order');
   const iTitle = idx(h, 'Title'), iActive = idx(h, 'Active');
   const iOrder = idx(h, 'Order') >= 0 ? idx(h, 'Order') : idx(h, 'Lesson Order');
-  return d.filter(r => r[iId]).map(r => ({
-    lessonId: r[iId] ?? '', course: r[iCourse] ?? '', module: r[iModule] ?? '',
-    moduleOrder: iModuleOrder >= 0 ? Number(r[iModuleOrder] ?? 0) : 0,
-    title: r[iTitle] ?? '', active: trueish(r[iActive]), order: Number(r[iOrder] ?? 0),
-  }));
+  const iVideo = idx(h, 'Video ID') >= 0 ? idx(h, 'Video ID') : idx(h, 'VideoID');
+  const iPdf   = idx(h, 'PDF URL')  >= 0 ? idx(h, 'PDF URL')  : idx(h, 'PDFUrl');
+  const iDesc  = idx(h, 'Description');
+  return d.filter(r => r[iId]).map(r => {
+    const id = r[iId] ?? '';
+    const moduleOrder = iModuleOrder >= 0 ? Number(r[iModuleOrder] ?? 0) : 0;
+    const order = Number(r[iOrder] ?? 0);
+    return {
+      lessonId: id, id,
+      course: r[iCourse] ?? '', module: r[iModule] ?? '',
+      moduleOrder, module_order: moduleOrder,
+      title: r[iTitle] ?? '', active: trueish(r[iActive]),
+      order, lesson_order: order,
+      video_id:    iVideo >= 0 ? (r[iVideo] ?? '') : '',
+      pdf_url:     iPdf   >= 0 ? (r[iPdf]   ?? '') : '',
+      description: iDesc  >= 0 ? (r[iDesc]  ?? '') : '',
+    };
+  });
 }
 
 export function parseTokens(rows: string[][] | undefined): Token[] {

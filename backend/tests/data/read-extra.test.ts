@@ -12,8 +12,8 @@ describe('parseLessons', () => {
       ['L2', 't2', 'M3', 'Prompts', 'FALSE', '2'],
     ];
     expect(parseLessons(rows)).toEqual([
-      { lessonId: 'L1', course: 't2', module: 'M1', moduleOrder: 0, title: 'Intro', active: true, order: 1 },
-      { lessonId: 'L2', course: 't2', module: 'M3', moduleOrder: 0, title: 'Prompts', active: false, order: 2 },
+      { lessonId: 'L1', id: 'L1', course: 't2', module: 'M1', moduleOrder: 0, module_order: 0, title: 'Intro', active: true, order: 1, lesson_order: 1, video_id: '', pdf_url: '', description: '' },
+      { lessonId: 'L2', id: 'L2', course: 't2', module: 'M3', moduleOrder: 0, module_order: 0, title: 'Prompts', active: false, order: 2, lesson_order: 2, video_id: '', pdf_url: '', description: '' },
     ]);
   });
   it('returns [] when only header', () => { expect(parseLessons([['LessonID']])).toEqual([]); });
