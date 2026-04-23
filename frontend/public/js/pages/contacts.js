@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { mountComposer } from '../composer/index.js';
+import { icon } from '../ui/icons.js';
 
 const SOURCE_LABELS = { buyer: 'buyer', waitlist: 'waitlist', website: 'website', lib: 'lib' };
 const PRODUCT_LABELS = {
@@ -8,6 +9,22 @@ const PRODUCT_LABELS = {
   'beyond-lighting':         'BL',
   'prompt-pack':             'PP',
 };
+
+// Source → tone mapping for the primitive tag component.
+const SOURCE_TONE = {
+  buyer:    'gold',
+  waitlist: 'warning',
+  website:  'default',
+  lib:      'default',
+};
+
+// Status filter "tabs" — newsletter-style underline chips.
+const STATUS_TABS = [
+  { key: 'all',          label: 'All' },
+  { key: 'active',       label: 'Active' },
+  { key: 'unsubscribed', label: 'Unsubscribed' },
+  { key: 'bounced',      label: 'Bounced' },
+];
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -40,10 +57,16 @@ function fmtDate(iso) {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function renderChip(type, key) {
-  const cls = type === 'source' ? `chip source-${key}` : 'chip product';
-  const label = type === 'source' ? (SOURCE_LABELS[key] || key) : (PRODUCT_LABELS[key] || key);
-  return `<span class="${cls}">${escapeHtml(label)}</span>`;
+function renderSourceTag(key) {
+  const tone = SOURCE_TONE[key] || 'default';
+  const label = SOURCE_LABELS[key] || key;
+  const toneAttr = tone === 'default' ? '' : ` data-tone="${tone}"`;
+  return `<span data-ui="tag"${toneAttr}>${escapeHtml(label)}</span>`;
+}
+
+function renderProductTag(key) {
+  const label = PRODUCT_LABELS[key] || key;
+  return `<span data-ui="tag">${escapeHtml(label)}</span>`;
 }
 
 export default async function mount(root) {
@@ -99,64 +122,98 @@ export default async function mount(root) {
     const unsubCount = state.rows.filter(r => r.status === 'unsubscribed').length;
     el.innerHTML = `
       <div class="contacts-head">
-        <h2>Contacts</h2>
         <p class="sub">${state.rows.length} contacts · ${unsubCount} unsubscribed</p>
       </div>
-      <div class="contacts-search">
-        <input id="c-search" type="search" placeholder="Search by name or email…" value="${escapeHtml(state.filters.q)}" />
+
+      <nav class="contacts-tabs">
+        ${STATUS_TABS.map(t => {
+          const isActive = t.key === state.filters.status;
+          const tabStyle = [
+            'padding:var(--s-3) 0',
+            'font-size:var(--fs-label)',
+            'font-weight:500',
+            'letter-spacing:0.08em',
+            'text-transform:uppercase',
+            `color:${isActive ? 'var(--c-fg)' : 'var(--c-fg-3)'}`,
+            'cursor:pointer',
+            'background:transparent',
+            'border:0',
+            `border-bottom:2px solid ${isActive ? 'var(--c-gold)' : 'transparent'}`,
+            'margin-bottom:-0.5px',
+            'transition:color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
+          ].join(';');
+          return `<button class="c-tab" data-tab="${t.key}" style="${tabStyle}">${t.label}</button>`;
+        }).join('')}
+      </nav>
+
+      <div class="contacts-search" data-ui="field">
+        <label for="c-search">Search</label>
+        <input id="c-search" data-ui="input" type="search" placeholder="Name or email…" value="${escapeHtml(state.filters.q)}" />
       </div>
+
       <div class="contacts-filters">
-        <select id="c-status">
-          <option value="all" ${state.filters.status==='all'?'selected':''}>All status</option>
-          <option value="active" ${state.filters.status==='active'?'selected':''}>Active</option>
-          <option value="unsubscribed" ${state.filters.status==='unsubscribed'?'selected':''}>Unsubscribed</option>
-          <option value="bounced" ${state.filters.status==='bounced'?'selected':''}>Bounced</option>
-        </select>
-        <select id="c-source">
-          <option value="">All sources</option>
-          <option value="buyer">Buyer</option>
-          <option value="waitlist">Waitlist</option>
-          <option value="website">Website</option>
-          <option value="lib">Link-in-bio</option>
-        </select>
-        <select id="c-product">
-          <option value="">All products</option>
-          <option value="intro-to-creative-ai">T2</option>
-          <option value="creative-ai-workshop-t3">T3</option>
-          <option value="beyond-lighting">BL</option>
-          <option value="prompt-pack">PP</option>
-          <option value="__nonbuyer">Non-buyers</option>
-        </select>
-        <select id="c-language">
-          <option value="all" ${state.filters.language==='all'?'selected':''}>AR + EN</option>
-          <option value="AR" ${state.filters.language==='AR'?'selected':''}>AR</option>
-          <option value="EN" ${state.filters.language==='EN'?'selected':''}>EN</option>
-        </select>
-        <select id="c-sort">
-          <option value="activity" ${state.filters.sort==='activity'?'selected':''}>Sort: last activity</option>
-          <option value="added"    ${state.filters.sort==='added'   ?'selected':''}>Sort: added date</option>
-          <option value="name"     ${state.filters.sort==='name'    ?'selected':''}>Sort: name A→Z</option>
-        </select>
+        <div data-ui="field">
+          <label for="c-source">Source</label>
+          <select id="c-source" data-ui="select">
+            <option value="">All sources</option>
+            <option value="buyer">Buyer</option>
+            <option value="waitlist">Waitlist</option>
+            <option value="website">Website</option>
+            <option value="lib">Link-in-bio</option>
+          </select>
+        </div>
+        <div data-ui="field">
+          <label for="c-product">Product</label>
+          <select id="c-product" data-ui="select">
+            <option value="">All products</option>
+            <option value="intro-to-creative-ai">T2</option>
+            <option value="creative-ai-workshop-t3">T3</option>
+            <option value="beyond-lighting">BL</option>
+            <option value="prompt-pack">PP</option>
+            <option value="__nonbuyer">Non-buyers</option>
+          </select>
+        </div>
+        <div data-ui="field">
+          <label for="c-language">Language</label>
+          <select id="c-language" data-ui="select">
+            <option value="all" ${state.filters.language==='all'?'selected':''}>AR + EN</option>
+            <option value="AR" ${state.filters.language==='AR'?'selected':''}>AR</option>
+            <option value="EN" ${state.filters.language==='EN'?'selected':''}>EN</option>
+          </select>
+        </div>
+        <div data-ui="field">
+          <label for="c-sort">Sort</label>
+          <select id="c-sort" data-ui="select">
+            <option value="activity" ${state.filters.sort==='activity'?'selected':''}>Last activity</option>
+            <option value="added"    ${state.filters.sort==='added'   ?'selected':''}>Added date</option>
+            <option value="name"     ${state.filters.sort==='name'    ?'selected':''}>Name A→Z</option>
+          </select>
+        </div>
       </div>
+
       <div class="contacts-rows">
-        ${state.rows.length === 0 ? '<p style="color:var(--c-ink-3);padding:20px 0;text-align:center">No contacts match.</p>' :
-          state.rows.map(r => `
+        ${state.rows.length === 0
+          ? '<p style="color:var(--c-fg-3);padding:var(--s-5) 0;text-align:center;font-size:var(--fs-body-sm)">No contacts match.</p>'
+          : state.rows.map(r => `
             <div class="contact-row ${state.selectedEmail===r.email?'active':''} ${r.status==='unsubscribed'?'unsub':''}" data-email="${escapeHtml(r.email)}">
-              <div class="contact-avatar">${escapeHtml(initials(r.name, r.email))}</div>
+              <div data-ui="avatar">${escapeHtml(initials(r.name, r.email))}</div>
               <div class="contact-body">
                 <div class="contact-name">${escapeHtml(r.name || '—')}</div>
                 <div class="contact-email">${escapeHtml(r.email)}</div>
                 <div class="contact-chips">
-                  ${r.sources.map(s => renderChip('source', s)).join('')}
-                  ${r.productsBought.map(p => renderChip('product', p)).join('')}
+                  ${r.sources.map(s => renderSourceTag(s)).join('')}
+                  ${r.productsBought.map(p => renderProductTag(p)).join('')}
                 </div>
                 <div class="contact-activity">${escapeHtml(relativeTime(r.lastActivityAt))}</div>
               </div>
             </div>`).join('')}
       </div>`;
 
-    // Wire filter + search handlers.
-    document.getElementById('c-status').onchange   = e => { state.filters.status   = e.target.value; loadList(); };
+    // Status tabs.
+    el.querySelectorAll('.c-tab').forEach(btn => {
+      btn.onclick = () => { state.filters.status = btn.dataset.tab; loadList(); };
+    });
+    // Filter/search handlers.
     document.getElementById('c-language').onchange = e => { state.filters.language = e.target.value; loadList(); };
     document.getElementById('c-sort').onchange     = e => { state.filters.sort     = e.target.value; loadList(); };
     document.getElementById('c-source').onchange   = e => { state.filters.sources  = e.target.value ? [e.target.value] : []; loadList(); };
@@ -175,7 +232,7 @@ export default async function mount(root) {
     if (!el) return;
     if (opts.loading) {
       el.className = 'contacts-detail';
-      el.innerHTML = '<p style="color:var(--c-ink-3)">Loading…</p>';
+      el.innerHTML = '<p style="color:var(--c-fg-3)">Loading…</p>';
       return;
     }
     if (!state.selectedDetail) {
@@ -190,75 +247,109 @@ export default async function mount(root) {
     }
     const c = state.selectedDetail;
     el.className = 'contacts-detail';
+
+    // Build a combined timeline: purchases + tokens (gifted/assigned).
+    const events = [];
+    (c.purchases || []).forEach(p => events.push({
+      ts: p.purchasedAt,
+      kind: 'purchase',
+      title: `Bought ${PRODUCT_LABELS[p.product] || p.product}`,
+      meta: `${Number(p.amountSAR).toLocaleString()} SAR${p.coupon ? ' · coupon ' + p.coupon : ''}${p.paymentId ? ' · ' + p.paymentId : ''}`,
+    }));
+    (c.tokens || []).forEach(t => events.push({
+      ts: t.assignedAt || t.createdAt || c.addedAt,
+      kind: 'token',
+      title: `Access granted · ${PRODUCT_LABELS[t.product] || t.product}`,
+      meta: t.status ? t.status : '',
+    }));
+    events.sort((a, b) => new Date(b.ts || 0) - new Date(a.ts || 0));
+
     el.innerHTML = `
       <div class="detail-head">
-        <div>
-          <h2>${escapeHtml(c.name || '—')}</h2>
-          <div class="detail-email">
-            <span>${escapeHtml(c.email)}</span>
-            <button class="copy" id="d-copy" title="Copy email to clipboard">📋</button>
-          </div>
-          <div class="detail-meta">
-            ${escapeHtml(c.status === 'active' ? 'Active' : c.status)} · ${escapeHtml(c.language)}${c.phone ? ' · ' + escapeHtml(c.phone) : ''}
+        <div class="detail-head-main">
+          <div data-ui="avatar" data-size="lg">${escapeHtml(initials(c.name, c.email))}</div>
+          <div class="detail-head-text">
+            <h1 class="detail-name">${escapeHtml(c.name || '—')}</h1>
+            <div class="detail-email">
+              <span class="detail-email-value">${escapeHtml(c.email)}</span>
+            </div>
+            <div class="detail-tags">
+              ${(c.sources || []).map(s => renderSourceTag(s)).join('')}
+              <span class="detail-meta-inline">${escapeHtml(c.status === 'active' ? 'Active' : c.status)} · ${escapeHtml(c.language)}${c.phone ? ' · ' + escapeHtml(c.phone) : ''}</span>
+            </div>
           </div>
         </div>
-        <button class="detail-close" id="d-close" title="Close">×</button>
+        <button class="detail-close" data-ui="btn" data-variant="ghost" id="d-close" title="Close" aria-label="Close">${icon('x', { size: 18 })}</button>
       </div>
 
       <div class="action-bar" id="d-actions">
-        <button class="primary" data-act="email">✉ Send email</button>
-        <button data-act="resend" ${c.tokens.length===0?'disabled title="No active courses to resend"':''}>🔗 Resend link</button>
-        <button data-act="gift">🎁 Gift</button>
-        <button class="danger" data-act="delete">🗑 Delete</button>
+        <button class="btn-primary" data-ui="btn" data-variant="primary" data-act="email">${icon('mail', { size: 16 })}<span>Send email</span></button>
+        <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-act="resend" ${c.tokens.length===0?'disabled title="No active courses to resend"':''}>${icon('link', { size: 16 })}<span>Resend link</span></button>
+        <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-act="gift">${icon('gift', { size: 16 })}<span>Gift</span></button>
+        <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-act="copy" id="d-copy">${icon('copy', { size: 16 })}<span>Copy email</span></button>
+        <button class="btn-ghost btn-danger" data-ui="btn" data-variant="ghost" data-act="delete">${icon('trash-2', { size: 16 })}<span>Delete</span></button>
       </div>
 
       <div class="detail-section">
-        <h3>Sources</h3>
-        ${c.sources.map(s => `<div class="row"><span class="row-title">${escapeHtml(SOURCE_LABELS[s] || s)}</span></div>`).join('')}
+        <h3>Activity</h3>
+        ${events.length === 0
+          ? '<p class="detail-empty">No activity yet.</p>'
+          : `<div class="timeline">${events.map(ev => `
+              <div class="timeline-row">
+                <div class="timeline-row-main">
+                  <div class="timeline-title">${escapeHtml(ev.title)}</div>
+                  ${ev.meta ? `<div class="timeline-meta">${escapeHtml(ev.meta)}</div>` : ''}
+                </div>
+                <div class="timeline-when">${escapeHtml(relativeTime(ev.ts))}</div>
+              </div>`).join('')}</div>`}
       </div>
 
       <div class="detail-section">
         <h3>Purchases (${c.purchases.length})</h3>
-        ${c.purchases.length === 0 ? '<p style="color:var(--c-ink-3);font-size:.85rem">No purchases yet.</p>' :
-          c.purchases.map(p => `
-            <div class="row">
-              <div class="row-title">${escapeHtml(PRODUCT_LABELS[p.product] || p.product)}</div>
-              <div class="row-meta">
-                ${Number(p.amountSAR).toLocaleString()} SAR${p.coupon ? ' · coupon ' + escapeHtml(p.coupon) : ''} · ${escapeHtml(fmtDate(p.purchasedAt))}
-                ${p.paymentId ? '<br>Payment: <code>' + escapeHtml(p.paymentId) + '</code>' : ''}
-              </div>
-            </div>`).join('')}
+        ${c.purchases.length === 0
+          ? '<p class="detail-empty">No purchases yet.</p>'
+          : `<div class="timeline">${c.purchases.map(p => `
+              <div class="timeline-row">
+                <div class="timeline-row-main">
+                  <div class="timeline-title">${escapeHtml(PRODUCT_LABELS[p.product] || p.product)}</div>
+                  <div class="timeline-meta">
+                    ${Number(p.amountSAR).toLocaleString()} SAR${p.coupon ? ' · coupon ' + escapeHtml(p.coupon) : ''} · ${escapeHtml(fmtDate(p.purchasedAt))}
+                    ${p.paymentId ? '<br>Payment: <code>' + escapeHtml(p.paymentId) + '</code>' : ''}
+                  </div>
+                </div>
+              </div>`).join('')}</div>`}
       </div>
 
       <div class="detail-section">
         <h3>Tokens (${c.tokens.length})</h3>
-        ${c.tokens.length === 0 ? '<p style="color:var(--c-ink-3);font-size:.85rem">No tokens assigned.</p>' :
-          c.tokens.map((t, i) => `
-            <div class="token-row">
-              <span class="product">${escapeHtml(PRODUCT_LABELS[t.product] || t.product)}</span>
-              <code data-idx="${i}">${'█'.repeat(Math.min(16, t.token.length))}</code>
-              <span class="status">${escapeHtml(t.status)}</span>
-              <button class="reveal" data-idx="${i}">reveal</button>
-            </div>`).join('')}
+        ${c.tokens.length === 0
+          ? '<p class="detail-empty">No tokens assigned.</p>'
+          : c.tokens.map((t, i) => `
+              <div class="token-row">
+                <span data-ui="tag" data-tone="gold">${escapeHtml(PRODUCT_LABELS[t.product] || t.product)}</span>
+                <code data-idx="${i}">${'█'.repeat(Math.min(16, t.token.length))}</code>
+                <span data-ui="tag">${escapeHtml(t.status)}</span>
+                <button class="reveal" data-ui="btn" data-variant="ghost" data-idx="${i}">reveal</button>
+              </div>`).join('')}
       </div>
 
       <div class="detail-section">
         <h3>Metadata</h3>
-        <div class="row">
-          <div class="row-meta">
-            Added: ${escapeHtml(fmtDate(c.addedAt))}<br>
-            Last activity: ${escapeHtml(fmtDate(c.lastActivityAt))}
+        <div class="timeline">
+          <div class="timeline-row">
+            <div class="timeline-row-main">
+              <div class="timeline-meta">
+                Added: ${escapeHtml(fmtDate(c.addedAt))}<br>
+                Last activity: ${escapeHtml(fmtDate(c.lastActivityAt))}
+              </div>
+            </div>
           </div>
         </div>
       </div>`;
 
-    // Wire copy + close + token reveal.
+    // Wire close + token reveal.
     document.getElementById('d-close').onclick = () => {
       state.selectedEmail = null; state.selectedDetail = null; render();
-    };
-    document.getElementById('d-copy').onclick = async () => {
-      try { await navigator.clipboard.writeText(c.email); toast('Email copied ✓', 'success'); }
-      catch { toast('Copy failed', 'error'); }
     };
     el.querySelectorAll('button.reveal').forEach(btn => {
       btn.onclick = () => {
@@ -306,7 +397,13 @@ export default async function mount(root) {
     if (act === 'email')   return actionSendEmail(c);
     if (act === 'resend')  return actionResendLink(c);
     if (act === 'gift')    return actionGift(c);
+    if (act === 'copy')    return actionCopyEmail(c);
     if (act === 'delete')  return actionDelete(c);
+  }
+
+  async function actionCopyEmail(c) {
+    try { await navigator.clipboard.writeText(c.email); toast('Email copied ✓', 'success'); }
+    catch { toast('Copy failed', 'error'); }
   }
 
   function actionSendEmail(c) {
@@ -315,13 +412,13 @@ export default async function mount(root) {
     o.innerHTML = `
       <div class="modal-card" style="max-width:1100px;max-height:92vh;overflow-y:auto">
         <h3>Send email to ${escapeHtml(c.name || c.email)}</h3>
-        <p style="color:var(--c-ink-2);font-size:.85rem;margin-bottom:10px">
+        <p style="color:var(--c-fg-2);font-size:var(--fs-body-sm);margin-bottom:var(--s-3)">
           Recipient: <strong>${escapeHtml(c.email)}</strong>
         </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div class="form-field"><label>Subject</label><input id="e-subj" value="" /></div>
-          <div class="form-field"><label>Language</label>
-            <select id="e-lang">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
+          <div data-ui="field"><label>Subject</label><input data-ui="input" id="e-subj" value="" /></div>
+          <div data-ui="field"><label>Language</label>
+            <select data-ui="select" id="e-lang">
               <option value="${c.language}">${c.language==='AR'?'العربية':'English'}</option>
               <option value="${c.language==='AR'?'EN':'AR'}">${c.language==='AR'?'English':'العربية'}</option>
             </select></div>
@@ -408,9 +505,9 @@ export default async function mount(root) {
     o.innerHTML = `
       <div class="modal-card" style="max-width:480px">
         <h3>Gift access to ${escapeHtml(c.name || c.email)}</h3>
-        <div class="form-field">
+        <div data-ui="field">
           <label>Which course?</label>
-          <select id="g-product">
+          <select data-ui="select" id="g-product">
             <option value="">— Pick —</option>
             <option value="intro-to-creative-ai">T2 — Intro to Creative AI</option>
             <option value="creative-ai-workshop-t3">T3 — Creative AI Workshop</option>
@@ -418,9 +515,9 @@ export default async function mount(root) {
             <option value="prompt-pack">Prompt Pack</option>
           </select>
         </div>
-        <div class="form-field">
+        <div data-ui="field">
           <label>Optional note (included in the email)</label>
-          <textarea id="g-note" rows="3"></textarea>
+          <textarea data-ui="textarea" id="g-note" rows="3"></textarea>
         </div>
         <div class="modal-actions">
           <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="g-cancel">Cancel</button>
@@ -470,13 +567,13 @@ export default async function mount(root) {
             ${c.purchases.length} purchases · ${c.tokens.length} tokens
           </div>
         </div>
-        <p style="color:var(--c-ink-2);font-size:.85rem;line-height:1.5">
+        <p style="color:var(--c-fg-2);font-size:var(--fs-body-sm);line-height:1.5">
           This removes their row from the Subscribers sheet. Their purchase
           history, tokens, and access stay intact — they can still log in with
           existing access links. They simply stop receiving newsletters and
           won't appear in Contacts.
         </p>
-        <p style="color:var(--c-ink-3);font-size:.78rem">
+        <p style="color:var(--c-fg-3);font-size:var(--fs-label)">
           To fully revoke access, edit the Tokens sheet directly.
         </p>
         <div class="modal-actions">
