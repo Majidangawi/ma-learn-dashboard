@@ -14,7 +14,11 @@ export async function dataRoutes(app: FastifyInstance, config: Config): Promise<
   const sheets = await createSheetsClient(config);
 
   app.get('/api/data/customers', async () => ({ customers: await readCustomers(sheets, sid) }));
-  app.get('/api/data/lessons', async () => ({ lessons: await readLessons(sheets, sid) }));
+  app.get('/api/data/lessons', async (req) => {
+    const course = (req.query as { course?: string } | undefined)?.course;
+    const lessons = await readLessons(sheets, sid);
+    return { lessons: course ? lessons.filter((l: { course?: string }) => l.course === course) : lessons };
+  });
   app.get('/api/data/tokens', async () => ({ tokens: await readTokens(sheets, sid) }));
   app.get('/api/data/coupons', async () => ({ coupons: await readCoupons(sheets, sid) }));
   app.get('/api/data/linkbio', async () => {
