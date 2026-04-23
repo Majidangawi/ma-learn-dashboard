@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { mountComposer } from '../composer/index.js';
+import { mountRichEditor } from '../ui/rich-editor.js';
 
 const PRODUCT_LABELS = {
   'intro-to-creative-ai':    'ITCAI',
@@ -68,7 +68,7 @@ export default async function mount(root) {
     state.selectedLessonId = id;
     state.selectedLesson = lesson;
     state.draftMedia = { videoId: lesson.video_id, pdfUrl: lesson.pdf_url, active: lesson.active };
-    state.draftBlocks = null;
+    state.draftHtml = null;
     state.selectedContent = { blocks: [], html: '' };
     renderList();
     renderEditor();
@@ -251,11 +251,10 @@ export default async function mount(root) {
     document.getElementById('f-active').onchange = (e) => { state.draftMedia.active = e.target.checked; };
 
     if (state.selectedContent) {
-      state.composer = mountComposer({
+      state.composer = mountRichEditor({
         root: document.getElementById('f-composer'),
-        initialBlocks: state.selectedContent.blocks,
-        language: 'AR',
-        onChange: (b) => { state.draftBlocks = b; },
+        initialHtml: state.selectedContent.html || '',
+        onChange: (html) => { state.draftHtml = html; },
       });
     }
 
@@ -283,15 +282,13 @@ export default async function mount(root) {
         }),
       });
 
-      if (state.draftBlocks) {
-        const { renderPreview } = await import('../composer/preview.js');
-        const html = renderPreview(state.draftBlocks, 'AR', {}).replace(/<div dir="[^"]*"[^>]*>|<\/div>|<hr[^>]*>|<p style="margin:0[^"]*"[^>]*>[\s\S]*$/g, '');
+      if (state.draftHtml !== null && state.draftHtml !== undefined) {
         await api('/api/writes/lesson/save_content', {
           method: 'POST',
           body: JSON.stringify({
             lessonId: state.selectedLesson.id,
-            blocks: state.draftBlocks,
-            html: html,
+            blocks: [],
+            html: state.draftHtml,
           }),
         });
       }
