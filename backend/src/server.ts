@@ -14,6 +14,7 @@ import webhooksRoute from './routes/webhooks.js';
 import publicRoute from './routes/public.js';
 import newsletterWelcomeRoute from './routes/newsletter-welcome.js';
 import newslettersRoute from './routes/newsletters.js';
+import contactsRoute from './routes/contacts.js';
 import { registerAuthGuard } from './auth/middleware.js';
 import { makeEmailAssetsUploader } from './drive/upload.js';
 import { createAppsScriptClient } from './apps-script/client.js';
@@ -112,6 +113,17 @@ export async function buildServer() {
   // Brevo, so we register whenever a SHEET_ID is configured.
   if (config.SHEET_ID) {
     await app.register(newsletterWelcomeRoute, { config });
+  }
+
+  // Contacts (CRM) read endpoints. Reads Subscribers/Customers/Tokens tabs via
+  // Sheets — no Apps Script needed, so gate on SHEET_ID only.
+  if (config.SHEET_ID) {
+    await app.register(contactsRoute, {
+      requireAuth: (req) => {
+        const u = (req as unknown as { user?: { email?: string } }).user;
+        return u?.email ?? null;
+      },
+    });
   }
 
   // Cron tick for scheduled newsletter sends. Needs the same Sheets + Apps
