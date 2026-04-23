@@ -1,6 +1,6 @@
 // backend/tests/data/audit-log.test.ts
 import { describe, it, expect } from 'vitest';
-import { buildAuditRow } from '../../src/data/audit-log.js';
+import { buildAuditRow, buildActivityEvent } from '../../src/data/audit-log.js';
 
 describe('buildAuditRow', () => {
   it('serializes entry into the 7-column row expected by the AuditLog sheet', () => {
@@ -62,5 +62,28 @@ describe('buildAuditRow', () => {
       idempotencyKey: 'ik',
     });
     expect(JSON.parse(row[3])).toEqual({ code: 'EB', params: { pct: 20, max: 30 } });
+  });
+});
+
+describe('buildActivityEvent', () => {
+  it('maps save_lesson_media tool to lesson_save type', () => {
+    const r = ['2026-04-23T10:00:00Z', 'majid', 'save_lesson_media', '{}', '{}', 'auto', 'k1'];
+    const e = buildActivityEvent(r);
+    expect(e.type).toBe('lesson_save');
+    expect(e.summary).toBe('Save lesson media');
+    expect(e.actor).toBe('majid');
+    expect(e.at).toBe('2026-04-23T10:00:00Z');
+  });
+  it('strips admin_ prefix and humanizes', () => {
+    const r = ['2026-04-23T10:00:00Z', 'noor', 'admin_gift_token', '{}', '{}', 'auto', 'k2'];
+    const e = buildActivityEvent(r);
+    expect(e.type).toBe('token_gift');
+    expect(e.summary).toBe('Gift token');
+  });
+  it('falls back to default type + capitalized summary for unknown tool', () => {
+    const r = ['2026-04-23T10:00:00Z', 'majid', 'some_new_tool', '{}', '{}', 'auto', 'k3'];
+    const e = buildActivityEvent(r);
+    expect(e.type).toBe('default');
+    expect(e.summary).toBe('Some new tool');
   });
 });
