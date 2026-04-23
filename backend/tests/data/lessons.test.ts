@@ -27,7 +27,7 @@ describe('deriveCourses', () => {
       { Course: 'unknown-future', Active: 'TRUE' },
     ];
     const courses = deriveCourses(rows);
-    expect(courses.find(c => c.id === 'intro-to-creative-ai')!.label).toBe('T2');
+    expect(courses.find(c => c.id === 'intro-to-creative-ai')!.label).toBe('ITCAI');
     expect(courses.find(c => c.id === 'unknown-future')!.label).toBe('unknown-future');
   });
 });

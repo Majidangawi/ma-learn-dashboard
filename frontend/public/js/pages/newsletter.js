@@ -12,8 +12,24 @@ const SEGMENT_PRESETS = [
   { key: 'website', label: 'Website / LIB signups', filter: { sources: ['website', 'lib'] } },
 ];
 
+const STATUS_TONE = {
+  draft: 'gold',
+  scheduled: 'warning',
+  sending: 'warning',
+  sent: 'success',
+  failed: 'danger',
+};
+
+const STATUS_LABEL = {
+  draft: 'Draft',
+  scheduled: 'Scheduled',
+  sending: 'Sending',
+  sent: 'Sent',
+  failed: 'Failed',
+};
+
 export default async function mount(root) {
-  root.innerHTML = '<h2 style="color:var(--gold)">Newsletter</h2><p style="color:var(--silver)">Loading…</p>';
+  root.innerHTML = '<section style="max-width:1080px; margin:0 auto; color:var(--c-fg-3); font-size:var(--fs-body-sm)">Loading…</section>';
 
   let { newsletters } = await api('/api/data/newsletters');
   const subCount = await api('/api/data/subscribers/count');
@@ -26,32 +42,59 @@ export default async function mount(root) {
     return list.filter(n => n.status !== 'deleted');
   }
 
+  const TABS = [
+    { key: 'all', label: 'All' },
+    { key: 'drafts', label: 'Drafts' },
+    { key: 'scheduled', label: 'Scheduled' },
+    { key: 'sent', label: 'Sent' },
+  ];
+
   function render() {
     const list = filterByTab(newsletters);
     root.innerHTML = `
-      <div dir="ltr" style="text-align:left">
-      <div style="margin-bottom:14px">
-        <h2 style="color:var(--gold);margin:0">Newsletter</h2>
-        <p style="color:var(--silver);margin:4px 0 14px;font-size:.9rem">
-          ${subCount.active.toLocaleString()} active · ${subCount.unsubscribed.toLocaleString()} unsubscribed
-        </p>
-        <button class="btn-primary" data-ui="btn" data-variant="primary" id="new-btn">+ New newsletter</button>
-      </div>
+      <section dir="ltr" style="max-width:1080px; margin:0 auto; display:grid; gap:var(--s-6); text-align:left">
 
-      <div class="tabs" style="margin:18px 0">
-        ${['all', 'drafts', 'scheduled', 'sent'].map(t => `
-          <button class="tab ${t === activeTab ? 'active' : ''}" data-tab="${t}">${t[0].toUpperCase() + t.slice(1)}</button>
-        `).join('')}
-      </div>
+        <section style="display:flex; justify-content:space-between; align-items:center; gap:var(--s-3); flex-wrap:wrap">
+          <div style="color:var(--c-fg-2); font-size:var(--fs-body-sm); font-variant-numeric:tabular-nums">
+            ${subCount.active.toLocaleString()} active · ${subCount.unsubscribed.toLocaleString()} unsubscribed
+          </div>
+          <button data-ui="btn" data-variant="primary" id="new-btn">+ New newsletter</button>
+        </section>
 
-      <div class="card-grid">
-        ${list.length ? list.map(nl => renderCard(nl)).join('') : '<p style="color:var(--silver)">Nothing here yet.</p>'}
-      </div>
-      </div>`;
+        <nav class="nl-tabs" style="display:flex; gap:var(--s-5); border-bottom:0.5px solid var(--c-ink-4); margin-bottom:var(--s-2)">
+          ${TABS.map(t => {
+            const isActive = t.key === activeTab;
+            const style = [
+              'padding:var(--s-3) 0',
+              'font-size:var(--fs-label)',
+              'font-weight:500',
+              'letter-spacing:0.08em',
+              'text-transform:uppercase',
+              `color:${isActive ? 'var(--c-fg)' : 'var(--c-fg-3)'}`,
+              'cursor:pointer',
+              'background:transparent',
+              'border:0',
+              `border-bottom:2px solid ${isActive ? 'var(--c-gold)' : 'transparent'}`,
+              'margin-bottom:-0.5px',
+              'transition:color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out)',
+            ].join(';');
+            return `<button class="nl-tab" data-tab="${t.key}" style="${style}">${t.label}</button>`;
+          }).join('')}
+        </nav>
+
+        <section class="nl-list">
+          ${list.length
+            ? list.map((nl, i) => renderRow(nl, i === list.length - 1)).join('')
+            : `<div style="padding:var(--s-6) 0; color:var(--c-fg-3); font-size:var(--fs-body-sm); text-align:center">No newsletters in this view. Drafts appear after you save a compose.</div>`}
+        </section>
+
+      </section>`;
 
     document.getElementById('new-btn').onclick = () => openCompose({});
-    root.querySelectorAll('.tab').forEach(el => { el.onclick = () => { activeTab = el.dataset.tab; render(); }; });
-    root.querySelectorAll('.nl-card').forEach(el => {
+    root.querySelectorAll('.nl-tab').forEach(el => {
+      el.onclick = () => { activeTab = el.dataset.tab; render(); };
+    });
+    root.querySelectorAll('.nl-row').forEach(el => {
       el.onclick = () => {
         const nl = newsletters.find(x => x.newsletterId === el.dataset.id);
         if (!nl) return;
@@ -61,26 +104,40 @@ export default async function mount(root) {
     });
   }
 
-  function renderCard(nl) {
-    const badge = {
-      draft: 'Draft',
-      scheduled: 'Scheduled',
-      sending: 'Sending',
-      sent: 'Sent',
-      failed: 'Failed',
-    }[nl.status] ?? nl.status;
+  function renderRow(nl, isLast) {
+    const tone = STATUS_TONE[nl.status] || 'gold';
+    const label = STATUS_LABEL[nl.status] || nl.status;
 
-    const bottomLine = nl.status === 'sent'
-      ? `Sent ${fmtDate(nl.sentAt)} · ${Number(nl.recipientCount || 0).toLocaleString()} recipients<br>${pct(nl.openCount, nl.recipientCount)}% open · ${pct(nl.clickCount, nl.recipientCount)}% click`
+    const meta = nl.status === 'sent'
+      ? `Sent ${fmtDate(nl.sentAt)} · ${Number(nl.recipientCount || 0).toLocaleString()} recipients · ${pct(nl.openCount, nl.recipientCount)}% open · ${pct(nl.clickCount, nl.recipientCount)}% click`
       : nl.status === 'scheduled'
         ? `Sends ${fmtDate(nl.scheduledAt)}`
         : `Last edited ${fmtDate(nl.updatedAt)}`;
 
+    const rowStyle = [
+      'display:grid',
+      'grid-template-columns: 1fr auto',
+      'gap:var(--s-3)',
+      'align-items:center',
+      'padding:var(--s-4) 0',
+      'cursor:pointer',
+      'transition:background var(--dur-fast) var(--ease-out)',
+      isLast ? '' : 'border-bottom:0.5px solid var(--c-ink-4)',
+    ].filter(Boolean).join(';');
+
     return `
-      <div class="nl-card" data-id="${escapeHtml(nl.newsletterId)}">
-        <div class="nl-badge">${escapeHtml(badge)}</div>
-        <div class="nl-subject">${escapeHtml(nl.subject || 'Untitled')}</div>
-        <div class="nl-meta">${bottomLine}</div>
+      <div class="nl-row" data-id="${escapeHtml(nl.newsletterId)}" style="${rowStyle}">
+        <div style="display:grid; gap:var(--s-1); min-width:0">
+          <div style="font-size:var(--fs-body); font-weight:500; color:var(--c-fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis">
+            ${escapeHtml(nl.subject || 'Untitled')}
+          </div>
+          <div class="tnum" style="font-size:var(--fs-body-sm); color:var(--c-fg-3); font-variant-numeric:tabular-nums">
+            ${meta}
+          </div>
+        </div>
+        <div style="flex-shrink:0">
+          <span data-ui="tag" data-tone="${tone}">${escapeHtml(label)}</span>
+        </div>
       </div>`;
   }
 
@@ -91,27 +148,27 @@ export default async function mount(root) {
     o.innerHTML = `
       <div class="modal-card" style="max-width:1200px;max-height:92vh;overflow-y:auto">
         <h3>${isNew ? 'New newsletter' : 'Edit newsletter'}</h3>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-          <div class="form-field"><label>Subject</label><input id="n-subj" value="${escapeHtml(nl.subject || '')}" /></div>
-          <div class="form-field"><label>Language</label>
-            <select id="n-lang">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3);margin-bottom:var(--s-3)">
+          <div data-ui="field"><label>Subject</label><input data-ui="input" id="n-subj" value="${escapeHtml(nl.subject || '')}" /></div>
+          <div data-ui="field"><label>Language</label>
+            <select data-ui="select" id="n-lang">
               <option value="AR" ${nl.language === 'AR' ? 'selected' : ''}>العربية</option>
               <option value="EN" ${nl.language === 'EN' ? 'selected' : ''}>English</option>
             </select></div>
         </div>
-        <div class="form-field"><label>Preheader (inbox preview)</label><input id="n-pre" value="${escapeHtml(nl.preheader || '')}" /></div>
-        <div class="form-field"><label>Segment</label>
-          <select id="n-seg">
+        <div data-ui="field"><label>Preheader (inbox preview)</label><input data-ui="input" id="n-pre" value="${escapeHtml(nl.preheader || '')}" /></div>
+        <div data-ui="field"><label>Segment</label>
+          <select data-ui="select" id="n-seg">
             ${SEGMENT_PRESETS.map(s => `<option value="${s.key}">${escapeHtml(s.label)}</option>`).join('')}
           </select>
-          <span id="n-count" style="color:var(--silver);margin-left:10px">—</span>
+          <span id="n-count" style="color:var(--c-fg-3);margin-left:var(--s-3);font-variant-numeric:tabular-nums">—</span>
         </div>
         <div id="n-composer"></div>
         <div class="modal-actions">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-cancel">Close</button>
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-save">Save draft</button>
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-schedule">Schedule…</button>
-          <button class="btn-primary" data-ui="btn" data-variant="primary" id="n-send">Send now</button>
+          <button data-ui="btn" data-variant="ghost" id="n-cancel">Close</button>
+          <button data-ui="btn" data-variant="secondary" id="n-save">Save draft</button>
+          <button data-ui="btn" data-variant="secondary" id="n-schedule">Schedule…</button>
+          <button data-ui="btn" data-variant="primary" id="n-send">Send now</button>
         </div>
         <div class="modal-msg" id="n-msg"></div>
       </div>`;

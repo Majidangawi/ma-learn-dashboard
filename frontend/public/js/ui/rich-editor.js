@@ -22,12 +22,12 @@ export function mountRichEditor({ root, initialHtml = '', onChange }) {
   root.innerHTML = `
     <div class="rte-wrap">
       <div class="rte-toolbar" role="toolbar">
-        <button type="button" class="rte-btn" data-cmd="bold"        title="Bold (Cmd/Ctrl+B)">${iconSvg('bold')}</button>
-        <button type="button" class="rte-btn" data-cmd="italic"      title="Italic (Cmd/Ctrl+I)">${iconSvg('italic')}</button>
-        <button type="button" class="rte-btn" data-cmd="underline"   title="Underline (Cmd/Ctrl+U)">${iconSvg('underline')}</button>
+        <button type="button" class="rte-btn" data-ui="btn" data-variant="ghost" data-size="sm" data-cmd="bold"        title="Bold (Cmd/Ctrl+B)">${iconSvg('bold')}</button>
+        <button type="button" class="rte-btn" data-ui="btn" data-variant="ghost" data-size="sm" data-cmd="italic"      title="Italic (Cmd/Ctrl+I)">${iconSvg('italic')}</button>
+        <button type="button" class="rte-btn" data-ui="btn" data-variant="ghost" data-size="sm" data-cmd="underline"   title="Underline (Cmd/Ctrl+U)">${iconSvg('underline')}</button>
         <span class="rte-sep"></span>
-        <button type="button" class="rte-btn" data-action="link"     title="Insert link">${iconSvg('link')} Link</button>
-        <button type="button" class="rte-btn" data-action="image"    title="Insert image">${iconSvg('image')} Image</button>
+        <button type="button" class="rte-btn" data-ui="btn" data-variant="ghost" data-size="sm" data-action="link"     title="Insert link">${iconSvg('link')} Link</button>
+        <button type="button" class="rte-btn" data-ui="btn" data-variant="ghost" data-size="sm" data-action="image"    title="Insert image">${iconSvg('image')} Image</button>
         <span class="rte-spinner" hidden>uploading…</span>
       </div>
       <div class="rte-editor" contenteditable="true" spellcheck="true"></div>

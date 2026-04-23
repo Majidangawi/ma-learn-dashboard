@@ -1,5 +1,6 @@
 const ROUTES = {
   home:      () => import('./pages/home.js'),
+  activity:  () => import('./pages/activity.js'),
   lessons:   () => import('./pages/lessons.js'),
   emails:    () => import('./pages/emails.js'),
   newsletter:() => import('./pages/newsletter.js'),

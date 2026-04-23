@@ -37,7 +37,7 @@ const ICON_TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" 
 const ICON_DRAG = '<svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>';
 
 export default async function mount(root) {
-  root.innerHTML = '<h2 style="color:var(--gold)">Link-in-Bio</h2><p style="color:var(--silver)">Loading…</p>';
+  root.innerHTML = '<p style="color:var(--c-fg-2)">Loading…</p>';
   let state = await api('/api/data/linkbio');
 
   function render() {
@@ -64,18 +64,25 @@ export default async function mount(root) {
       </li>`).join('');
 
     root.innerHTML = `
-      <h2 style="color:var(--gold)">Link-in-Bio</h2>
-      <div style="margin-bottom:16px"><button class="btn-primary" data-ui="btn" data-variant="primary" id="lb-open-public" style="display:inline-flex;align-items:center;gap:8px">Open public page ↗</button></div>
+      <div style="display:flex; align-items:center; gap: var(--s-3); margin-bottom: var(--s-5); flex-wrap: wrap">
+        <button data-ui="btn" data-variant="primary" id="lb-open-public" style="display:inline-flex;align-items:center;gap:8px">Open public page ↗</button>
+        <span style="color: var(--c-fg-3); font-size: var(--fs-body-sm)">Live at <span style="font-family: var(--font-mono); font-size: var(--fs-mono); color: var(--c-fg-2)">linkinbio.malearnsa.com</span></span>
+      </div>
 
-      <section style="background:var(--surface);padding:16px;border-radius:10px;margin-bottom:20px">
-        <h3 style="color:var(--gold);margin-bottom:12px">Header</h3>
-        <div class="form-field"><label>Photo URL</label><input id="h-photo" value="${escapeHtml(state.header.photoURL)}" /></div>
-        <div class="form-field"><label>Tagline AR</label><input id="h-ar" value="${escapeHtml(state.header.taglineAR)}" /></div>
-        <div class="form-field"><label>Tagline EN</label><input id="h-en" value="${escapeHtml(state.header.taglineEN)}" /></div>
-        <button class="btn-primary" data-ui="btn" data-variant="primary" id="save-header">Save header</button>
+      <section data-ui="card" style="margin-bottom: var(--s-5)">
+        <div style="font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-fg-3); margin-bottom: var(--s-3)">Header</div>
+        <div data-ui="field"><label>Photo URL</label><input data-ui="input" id="h-photo" value="${escapeHtml(state.header.photoURL)}" /></div>
+        <div data-ui="field"><label>Tagline AR</label><input data-ui="input" id="h-ar" value="${escapeHtml(state.header.taglineAR)}" /></div>
+        <div data-ui="field"><label>Tagline EN</label><input data-ui="input" id="h-en" value="${escapeHtml(state.header.taglineEN)}" /></div>
+        <div style="display:flex; justify-content:flex-end; margin-top: var(--s-3)">
+          <button data-ui="btn" data-variant="primary" id="save-header">Save header</button>
+        </div>
       </section>
 
-      <button class="btn-primary" data-ui="btn" data-variant="primary" id="add-btn" style="margin-bottom:12px">+ Add link</button>
+      <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom: var(--s-3)">
+        <div style="font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-fg-3)">Links</div>
+        <button data-ui="btn" data-variant="primary" id="add-btn">Add link</button>
+      </div>
       <ul class="linkbio-list">${rows}</ul>`;
 
     const list = root.querySelector('.linkbio-list');
@@ -184,7 +191,7 @@ export default async function mount(root) {
     const stage = await api('/api/writes/linkbio_header', { method: 'POST', body: JSON.stringify(body) });
     openApprovalModal({
       title: 'Confirm header update',
-      previewHtml: `<pre style="white-space:pre-wrap;font:inherit;background:var(--surface2);padding:10px;border-radius:6px">${escapeHtml(JSON.stringify(stage.preview, null, 2))}</pre>`,
+      previewHtml: `<pre style="white-space:pre-wrap;font:inherit;background:var(--c-ink-2);padding:10px;border-radius:6px">${escapeHtml(JSON.stringify(stage.preview, null, 2))}</pre>`,
       pendingWriteId: stage.id,
       onApproved: async () => { state = await api('/api/data/linkbio'); render(); },
     });

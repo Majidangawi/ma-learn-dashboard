@@ -1,82 +1,92 @@
 import { api } from '../api.js';
 
-function escapeHtml(s) {
-  return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+function formatSAR(n) { return new Intl.NumberFormat('en-US').format(Math.round(n)); }
+function arabicDate(d) { return new Intl.DateTimeFormat('ar-SA', { weekday: 'long', day: 'numeric', month: 'long' }).format(d); }
+function englishDate(d) { return new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long' }).format(d); }
+
+function sparklinePath(values, w = 180, h = 48) {
+  if (!values?.length) return '';
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = Math.max(1, max - min);
+  const step = w / (values.length - 1);
+  return values.map((v, i) => {
+    const x = i * step;
+    const y = h - ((v - min) / range) * h;
+    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }).join(' ');
 }
 
 export default async function mount(root) {
-  root.innerHTML = '<p style="color:var(--silver)">Loading insights…</p>';
-  const insights = await api('/api/insights');
+  root.innerHTML = '<div style="color:var(--c-fg-3)">Loading today\'s briefing…</div>';
+  let kpis;
+  try { kpis = await api('/api/data/home-kpis'); }
+  catch (e) {
+    root.innerHTML = `<div style="color:var(--c-danger)">Could not load KPIs: ${e.message}</div>`;
+    return;
+  }
 
-  const sarFmt = n => `${Math.round(n).toLocaleString('en-US')} SAR`;
-  const usdFmt = n => `$${n.toFixed(2)}`;
+  const now = new Date();
+  const revDelta = kpis.revenuePrevWeekSAR > 0
+    ? ((kpis.revenueThisWeekSAR - kpis.revenuePrevWeekSAR) / kpis.revenuePrevWeekSAR * 100)
+    : 0;
+  const up = revDelta >= 0;
 
   root.innerHTML = `
-    <h2 style="color:var(--gold);margin-bottom:20px">Home</h2>
+    <section style="max-width:1080px; margin:0 auto; display:grid; gap:var(--s-7)">
 
-    <div class="kpi-row">
-      <div class="kpi-card"><div class="kpi-label">Revenue this month</div><div class="kpi-value">${sarFmt(insights.revenueMTDSAR)}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Revenue today</div><div class="kpi-value">${sarFmt(insights.revenueTodaySAR)}</div></div>
-      <div class="kpi-card"><div class="kpi-label">New registrations MTD</div><div class="kpi-value">${insights.newRegistrationsMTD}</div></div>
-      <div class="kpi-card"><div class="kpi-label">Noor spend MTD</div><div class="kpi-value">${usdFmt(insights.anthropicSpendUSD)}</div></div>
-    </div>
+      <header>
+        <div style="font-size:var(--fs-body); color:var(--c-fg-2)">Good morning, Majid</div>
+        <div style="font-size:var(--fs-label); color:var(--c-fg-3); letter-spacing:0.04em; text-transform:uppercase; margin-top:2px">${englishDate(now)} · ${arabicDate(now)}</div>
+        <hr data-ui="hairline" style="width:120px; margin:var(--s-3) 0 0">
+      </header>
 
-    <div class="kpi-row" style="grid-template-columns: 2fr 1fr;">
-      <div class="kpi-card">
-        <div class="kpi-label">Revenue last 30 days</div>
-        <canvas id="rev-chart" style="margin-top:12px;max-height:220px"></canvas>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">T3 Cohort 1 seats</div>
-        <div class="kpi-value">${insights.t3SeatsFilled} / ${insights.t3SeatsTotal}</div>
-        <div class="progress"><div style="width:${Math.min(100, insights.t3SeatsFilled / insights.t3SeatsTotal * 100)}%"></div></div>
-      </div>
-    </div>
+      <section data-ui="card">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:var(--s-3)">
+          <h2 style="font-size:var(--fs-h2)">M1 — Deliver Cohort 1</h2>
+          <span style="font-size:var(--fs-label); color:var(--c-fg-3); letter-spacing:0.04em; text-transform:uppercase">Apr 22 – May 2</span>
+        </div>
+        <div style="height:4px; background:var(--c-ink-3); border-radius:2px; overflow:hidden">
+          <div style="width:40%; height:100%; background:var(--c-gold); border-radius:2px"></div>
+        </div>
+        <div style="margin-top:var(--s-3); font-size:var(--fs-body-sm); color:var(--c-fg-2)">9 days to M2 · T4 soft launch begins May 3.</div>
+      </section>
 
-    <div class="kpi-row" style="grid-template-columns: 1fr 1fr 2fr;">
-      <div class="kpi-card">
-        <div class="kpi-label">Needs your action</div>
-        <div style="margin-top:8px;color:var(--ivory)">${insights.pendingApprovals} pending approvals</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Upcoming actions</div>
-        ${insights.scheduledActions.length
-          ? `<ul style="margin-top:8px;color:var(--ivory);font-size:.9rem;list-style:none;padding:0">${insights.scheduledActions.map(a => `<li>${escapeHtml(a.label)} — ${escapeHtml(a.when)}</li>`).join('')}</ul>`
-          : '<div style="margin-top:8px;color:var(--silver)">None scheduled</div>'}
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Recent buyers</div>
-        <table class="data-table" style="margin-top:8px;font-size:.85rem">
-          <tbody>
-          ${insights.recentBuyers.map(b => `
-            <tr><td>${escapeHtml(b.name || b.email)}</td><td>${escapeHtml(b.product)}</td><td>${sarFmt(b.amountSAR)}</td></tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
+      <section style="display:grid; grid-template-columns: 1fr 1fr; gap:var(--s-6); align-items:start">
 
-  await new Promise(r => (window.Chart ? r() : window.addEventListener('load', r, { once: true })));
-  const ctx = document.getElementById('rev-chart');
-  if (ctx && window.Chart) {
-    new window.Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: insights.revenue30Days.map(d => d.date.slice(5)),
-        datasets: [{
-          label: 'SAR',
-          data: insights.revenue30Days.map(d => d.sar),
-          borderColor: '#C9A84C',
-          backgroundColor: 'rgba(201,168,76,0.14)',
-          tension: 0.3, fill: true, pointRadius: 2,
-        }],
-      },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-          y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-        },
-      },
-    });
-  }
+        <div style="display:grid; gap:var(--s-2)">
+          <div style="font-size:var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--c-fg-3)">Revenue this week</div>
+          <div style="font-size:var(--fs-display-xl); font-weight:200; line-height:1; letter-spacing:-0.02em">
+            ${formatSAR(kpis.revenueThisWeekSAR)}<span style="font-size:.35em; color:var(--c-fg-3); margin-inline-start:.4em; font-weight:400"> SAR</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:var(--s-2)">
+            <svg width="180" height="48" viewBox="0 0 180 48" fill="none" style="flex-shrink:0">
+              <path d="${sparklinePath(kpis.revenueSparkline)}" stroke="var(--c-gold)" stroke-width="1.5" fill="none"/>
+            </svg>
+            <span style="font-size:var(--fs-body-sm); color:${up ? 'var(--c-success)' : 'var(--c-danger)'}">
+              ${up ? '↑' : '↓'} ${Math.abs(revDelta).toFixed(1)}%
+              <span style="color:var(--c-fg-3)">vs last week</span>
+            </span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--s-5); border-left:0.5px solid var(--c-gold-dim); padding-left:var(--s-6)">
+          ${[
+            { label: 'New customers this week', value: kpis.newCustomersThisWeek },
+            { label: 'Active tokens',           value: kpis.activeTokensUnused },
+            { label: 'T3 Cohort 2 seats',       value: `${kpis.t3c2SeatsSold}/${kpis.t3c2SeatsTotal}` },
+            { label: 'Total units sold',        value: kpis.totalUnitsSold },
+          ].map(k => `
+            <div>
+              <div style="font-size:var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--c-fg-3); margin-bottom:var(--s-1)">${k.label}</div>
+              <div style="font-size:var(--fs-display-l); font-weight:200; line-height:1; letter-spacing:-0.015em">${typeof k.value === 'number' ? formatSAR(k.value) : k.value}</div>
+            </div>`).join('')}
+        </div>
+      </section>
+
+      <section>
+        <h2 style="font-size:var(--fs-h2); margin-bottom:var(--s-3)">What ships today</h2>
+        <div style="color:var(--c-fg-3); font-size:var(--fs-body-sm); padding:var(--s-4) 0">Nothing scheduled today. Take a breath.</div>
+      </section>
+
+    </section>`;
 }
