@@ -1,3 +1,5 @@
+@import url('primitives/toggle.css');
+
 /* ==========================================================================
    Primitives — rendered via [data-ui] attributes.
    Page CSS never styles primitives directly.
