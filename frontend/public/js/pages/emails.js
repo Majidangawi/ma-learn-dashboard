@@ -15,7 +15,7 @@ const SEGMENTS = [
 ];
 
 export default async function mount(root) {
-  root.innerHTML = '<h2 style="color:var(--gold)">Emails</h2><p style="color:var(--silver)">Loading…</p>';
+  root.innerHTML = '<section style="max-width:1080px; margin:0 auto; color:var(--c-fg-3); font-size:var(--fs-body-sm)">Loading…</section>';
   let templates = (await api('/api/data/templates')).templates;
 
   async function renderTemplateList() {
@@ -25,37 +25,88 @@ export default async function mount(root) {
 
   function render() {
     const hasTemplates = templates.length > 0;
+    const grid = hasTemplates ? templates.map(t => {
+      const langs = [];
+      if (t.bodyAR || t.subjectAR) langs.push('AR');
+      if (t.bodyEN || t.subjectEN) langs.push('EN');
+      const varCount = (t.variables || []).length;
+      return `
+        <div data-ui="card" class="template-card" data-id="${escapeHtml(t.templateId)}" style="cursor:pointer; display:grid; gap:var(--s-2); transition: border-color var(--dur-fast) var(--ease-out);">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:var(--s-2)">
+            <div style="font-weight:500; font-size:var(--fs-body)">${escapeHtml(t.name)}</div>
+            <div style="display:flex; gap:var(--s-1); flex-shrink:0">
+              ${langs.map(l => `<span data-ui="tag" data-tone="gold">${l}</span>`).join('')}
+            </div>
+          </div>
+          <div style="font-size:var(--fs-label); color:var(--c-fg-3); letter-spacing:0.04em; text-transform:uppercase">
+            ${varCount} ${varCount === 1 ? 'var' : 'vars'}
+          </div>
+        </div>`;
+    }).join('') : '';
+
     root.innerHTML = `
-      <h2 style="color:var(--gold)">Emails</h2>
-      <p style="color:var(--silver);margin-bottom:16px">Compose & send. Every new template gets saved to the <code>EmailTemplates</code> sheet.</p>
+      <section style="max-width:1080px; margin:0 auto; display:grid; gap:var(--s-6)">
 
-      <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-        <button class="btn-primary" data-ui="btn" data-variant="primary" id="new-email-btn">+ Add new template</button>
-        <button class="btn-primary" data-ui="btn" data-variant="primary" id="noor-email-btn" style="background:#8e6fd6">✨ Email by Noor</button>
-      </div>
+        <section style="display:flex; justify-content:space-between; align-items:center; gap:var(--s-3); flex-wrap:wrap">
+          <div style="color:var(--c-fg-2); font-size:var(--fs-body-sm)">Compose and send to buyer segments. Templates save to the EmailTemplates sheet.</div>
+          <div style="display:flex; gap:var(--s-2)">
+            <button data-ui="btn" data-variant="secondary" id="noor-email-btn">Draft with Noor</button>
+            <button data-ui="btn" data-variant="primary"   id="new-email-btn">New template</button>
+          </div>
+        </section>
 
-      ${hasTemplates ? `
-      <section style="background:var(--surface);padding:16px;border-radius:10px;margin-bottom:20px">
-        <h3 style="color:var(--gold);margin-bottom:12px">Send an existing template</h3>
-        <div class="form-field">
-          <label>Template</label>
-          <select id="tpl">${templates.map(t => `<option value="${escapeHtml(t.templateId)}">${escapeHtml(t.name)}</option>`).join('')}</select>
-        </div>
-        <div class="form-field">
-          <label>Segment</label>
-          <select id="seg">${SEGMENTS.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}</select>
-        </div>
-        <div class="form-field">
-          <label>Language</label>
-          <select id="lang"><option value="AR">العربية</option><option value="EN">English</option></select>
-        </div>
-        <button class="btn-primary" data-ui="btn" data-variant="primary" id="preview-btn">Preview + send</button>
-        <div id="msg" class="modal-msg"></div>
-      </section>` : '<p style="color:var(--silver)">No templates yet — click <strong>Add new template</strong> or <strong>Email by Noor</strong> to create one.</p>'}`;
+        ${hasTemplates ? `
+          <section>
+            <div style="font-size:var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--c-fg-3); margin-bottom:var(--s-3)">Templates</div>
+            <div class="template-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:var(--s-3)">
+              ${grid}
+            </div>
+          </section>
+
+          <hr data-ui="hairline">
+
+          <section>
+            <div style="font-size:var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--c-fg-3); margin-bottom:var(--s-3)">Send an existing template</div>
+            <div style="display:grid; grid-template-columns:2fr 2fr 1fr; gap:var(--s-3); align-items:end">
+              <div data-ui="field">
+                <label>Template</label>
+                <select data-ui="select" id="tpl">${templates.map(t => `<option value="${escapeHtml(t.templateId)}">${escapeHtml(t.name)}</option>`).join('')}</select>
+              </div>
+              <div data-ui="field">
+                <label>Segment</label>
+                <select data-ui="select" id="seg">${SEGMENTS.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}</select>
+              </div>
+              <div data-ui="field">
+                <label>Language</label>
+                <select data-ui="select" id="lang"><option value="AR">العربية</option><option value="EN">English</option></select>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; margin-top:var(--s-4)">
+              <button data-ui="btn" data-variant="primary" id="preview-btn">Preview + send</button>
+            </div>
+            <div id="msg" style="text-align:right; margin-top:var(--s-2); font-size:var(--fs-body-sm); color:var(--c-fg-3)"></div>
+          </section>
+        ` : `
+          <section style="text-align:center; padding:var(--s-7) 0; color:var(--c-fg-3); font-size:var(--fs-body-sm)">
+            No templates yet. Click <strong style="color:var(--c-fg-2)">New template</strong> or <strong style="color:var(--c-fg-2)">Draft with Noor</strong> to create one.
+          </section>
+        `}
+      </section>`;
 
     document.getElementById('new-email-btn').onclick = () => openManualForm();
     document.getElementById('noor-email-btn').onclick = openNoorForm;
-    if (hasTemplates) document.getElementById('preview-btn').onclick = sendTemplate;
+    if (hasTemplates) {
+      document.getElementById('preview-btn').onclick = sendTemplate;
+      // Clicking a template card selects it in the dropdown
+      for (const card of root.querySelectorAll('.template-card')) {
+        card.onclick = () => {
+          const select = document.getElementById('tpl');
+          if (select) select.value = card.dataset.id;
+          root.querySelectorAll('.template-card').forEach(c => { c.style.borderColor = ''; });
+          card.style.borderColor = 'var(--c-gold)';
+        };
+      }
+    }
   }
 
   // ───── Send existing template ─────
@@ -104,23 +155,23 @@ export default async function mount(root) {
     o.className = 'modal-overlay';
     o.innerHTML = `
       <div class="modal-card" style="max-width:1100px">
-        <h3>${initial.templateId ? 'Edit' : 'Add new'} email template</h3>
-        <div class="form-field"><label>Template name</label><input id="m-name" value="${escapeHtml(initial.name || '')}" placeholder="e.g. May Cohort Announcement" /></div>
-        <div class="form-field"><label>Template ID</label><input id="m-id" value="${escapeHtml(initial.templateId || '')}" placeholder="auto if blank" /></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div class="form-field"><label>Subject AR</label><input id="m-subj-ar" dir="rtl" value="${escapeHtml(initial.subjectAR || '')}" /></div>
-          <div class="form-field"><label>Subject EN</label><input id="m-subj-en" value="${escapeHtml(initial.subjectEN || '')}" /></div>
+        <h3>${initial.templateId ? 'Edit' : 'New'} email template</h3>
+        <div data-ui="field"><label>Template name</label><input data-ui="input" id="m-name" value="${escapeHtml(initial.name || '')}" placeholder="e.g. May Cohort Announcement" /></div>
+        <div data-ui="field"><label>Template ID</label><input data-ui="input" id="m-id" value="${escapeHtml(initial.templateId || '')}" placeholder="auto if blank" /></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
+          <div data-ui="field"><label>Subject AR</label><input data-ui="input" id="m-subj-ar" dir="rtl" value="${escapeHtml(initial.subjectAR || '')}" /></div>
+          <div data-ui="field"><label>Subject EN</label><input data-ui="input" id="m-subj-en" value="${escapeHtml(initial.subjectEN || '')}" /></div>
         </div>
 
-        <h4 style="color:var(--gold);margin:14px 0 6px">العربية</h4>
+        <div style="font-size:var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--c-fg-3); margin:var(--s-4) 0 var(--s-2)">العربية</div>
         <div id="composer-ar"></div>
 
-        <h4 style="color:var(--gold);margin:18px 0 6px">English</h4>
+        <div style="font-size:var(--fs-label); font-weight:500; letter-spacing:0.08em; text-transform:uppercase; color:var(--c-fg-3); margin:var(--s-5) 0 var(--s-2)">English</div>
         <div id="composer-en"></div>
 
         <div class="modal-actions">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="m-cancel">Cancel</button>
-          <button class="btn-primary" data-ui="btn" data-variant="primary" id="m-save">Preview + save</button>
+          <button data-ui="btn" data-variant="ghost" id="m-cancel">Cancel</button>
+          <button data-ui="btn" data-variant="primary" id="m-save">Preview + save</button>
         </div>
         <div class="modal-msg" id="m-msg"></div>
       </div>`;
@@ -176,25 +227,25 @@ export default async function mount(root) {
     o.className = 'modal-overlay';
     o.innerHTML = `
       <div class="modal-card" style="max-width:640px">
-        <h3>✨ Email by Noor</h3>
-        <p style="color:var(--silver);font-size:.85rem;margin-bottom:12px">
+        <h3>Draft with Noor</h3>
+        <p style="color:var(--c-fg-2); font-size:var(--fs-body-sm); margin-bottom:var(--s-3)">
           Tell Noor the idea. She'll draft subject + body in your brand voice (AR + EN by default).
         </p>
-        <div class="form-field"><label>Product (optional)</label>
-          <select id="n-product">
+        <div data-ui="field"><label>Product (optional)</label>
+          <select data-ui="select" id="n-product">
             <option value="">None</option>
             <option value="T3">T3 — Creative AI Cohort</option>
             <option value="T2">T2 — Intro to Creative AI</option>
             <option value="T1">T1 — Prompt Pack</option>
             <option value="BL">Beyond Lighting</option>
           </select></div>
-        <div class="form-field"><label>Your idea</label>
-          <textarea id="n-idea" rows="6" placeholder="Announce that May cohort registration opens Monday. Early bird is 799 SAR until the 15th. Limited to 25 seats."></textarea></div>
-        <div class="form-field"><label>Language</label>
-          <select id="n-lang"><option value="BOTH">Both (AR + EN)</option><option value="AR">العربية only</option><option value="EN">English only</option></select></div>
+        <div data-ui="field"><label>Your idea</label>
+          <textarea data-ui="input" id="n-idea" rows="6" placeholder="Announce that May cohort registration opens Monday. Early bird is 799 SAR until the 15th. Limited to 25 seats."></textarea></div>
+        <div data-ui="field"><label>Language</label>
+          <select data-ui="select" id="n-lang"><option value="BOTH">Both (AR + EN)</option><option value="AR">العربية only</option><option value="EN">English only</option></select></div>
         <div class="modal-actions">
-          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-cancel">Cancel</button>
-          <button class="btn-primary" data-ui="btn" data-variant="primary" id="n-gen">Generate</button>
+          <button data-ui="btn" data-variant="ghost" id="n-cancel">Cancel</button>
+          <button data-ui="btn" data-variant="primary" id="n-gen">Generate</button>
         </div>
         <div class="modal-msg" id="n-msg"></div>
       </div>`;
@@ -206,7 +257,7 @@ export default async function mount(root) {
       const product = o.querySelector('#n-product').value || null;
       if (idea.length < 5) { o.querySelector('#n-msg').textContent = 'Tell Noor a bit more.'; return; }
       o.querySelector('#n-gen').disabled = true;
-      o.querySelector('#n-msg').innerHTML = '<span style="color:var(--silver)">Noor is drafting… this can take 10–30s.</span>';
+      o.querySelector('#n-msg').innerHTML = '<span style="color:var(--c-fg-3)">Noor is drafting… this can take 10–30s.</span>';
       try {
         const { draft } = await api('/api/noor/draft_email', {
           method: 'POST',
