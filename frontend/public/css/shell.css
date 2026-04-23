@@ -35,6 +35,15 @@
 .sidebar-foot .env-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-warning); }
 .sidebar-foot .env-dot[data-env="production"] { background: var(--c-success); }
 
+/* Noor chat — pinned in the sidebar above the foot. Collapsed by default. */
+.sidebar-noor { border-top: 0.5px solid var(--c-ink-4); display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-noor-head { height: 40px; padding: 0 var(--s-5); display: flex; align-items: center; justify-content: space-between; font-size: var(--fs-label); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--c-gold-bright); cursor: pointer; user-select: none; }
+.sidebar-noor-head:hover { background: var(--c-ink-3); }
+.sidebar-noor-head .toggle-icon { color: var(--c-fg-3); transition: transform var(--dur-fast) var(--ease-out); }
+.sidebar-noor.collapsed .sidebar-noor-head .toggle-icon { transform: rotate(-90deg); }
+.sidebar-noor-body { height: 40vh; min-height: 240px; padding: 0 var(--s-4) var(--s-3); display: flex; flex-direction: column; overflow: hidden; border-top: 0.5px solid var(--c-ink-4); }
+.sidebar-noor.collapsed .sidebar-noor-body { display: none; }
+
 /* Topbar anatomy */
 .topbar-title { flex: 1; min-width: 0; }
 .topbar-title h1 { font-size: var(--fs-h1); font-weight: 700; line-height: 1.1; color: var(--c-fg); }
