@@ -30,8 +30,8 @@ export default async function mount(root) {
       <p style="color:var(--silver);margin-bottom:16px">Compose & send. Every new template gets saved to the <code>EmailTemplates</code> sheet.</p>
 
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
-        <button class="btn-primary" id="new-email-btn">+ Add new template</button>
-        <button class="btn-primary" id="noor-email-btn" style="background:#8e6fd6">✨ Email by Noor</button>
+        <button class="btn-primary" data-ui="btn" data-variant="primary" id="new-email-btn">+ Add new template</button>
+        <button class="btn-primary" data-ui="btn" data-variant="primary" id="noor-email-btn" style="background:#8e6fd6">✨ Email by Noor</button>
       </div>
 
       ${hasTemplates ? `
@@ -49,7 +49,7 @@ export default async function mount(root) {
           <label>Language</label>
           <select id="lang"><option value="AR">العربية</option><option value="EN">English</option></select>
         </div>
-        <button class="btn-primary" id="preview-btn">Preview + send</button>
+        <button class="btn-primary" data-ui="btn" data-variant="primary" id="preview-btn">Preview + send</button>
         <div id="msg" class="modal-msg"></div>
       </section>` : '<p style="color:var(--silver)">No templates yet — click <strong>Add new template</strong> or <strong>Email by Noor</strong> to create one.</p>'}`;
 
@@ -119,8 +119,8 @@ export default async function mount(root) {
         <div id="composer-en"></div>
 
         <div class="modal-actions">
-          <button class="btn-ghost" id="m-cancel">Cancel</button>
-          <button class="btn-primary" id="m-save">Preview + save</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="m-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="m-save">Preview + save</button>
         </div>
         <div class="modal-msg" id="m-msg"></div>
       </div>`;
@@ -193,8 +193,8 @@ export default async function mount(root) {
         <div class="form-field"><label>Language</label>
           <select id="n-lang"><option value="BOTH">Both (AR + EN)</option><option value="AR">العربية only</option><option value="EN">English only</option></select></div>
         <div class="modal-actions">
-          <button class="btn-ghost" id="n-cancel">Cancel</button>
-          <button class="btn-primary" id="n-gen">Generate</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="n-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="n-gen">Generate</button>
         </div>
         <div class="modal-msg" id="n-msg"></div>
       </div>`;

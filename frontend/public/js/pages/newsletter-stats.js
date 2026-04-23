@@ -55,9 +55,9 @@ export default async function mount(root, params) {
     </p>
 
     <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn-primary" id="edit-btn" title="Sent newsletters are immutable. This clones the content into a new editable draft.">Edit as new draft</button>
-      <button class="btn-ghost" id="clone-btn">Clone</button>
-      <button class="btn-ghost" id="resend-btn">Resend to non-openers</button>
+      <button class="btn-primary" data-ui="btn" data-variant="primary" id="edit-btn" title="Sent newsletters are immutable. This clones the content into a new editable draft.">Edit as new draft</button>
+      <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="clone-btn">Clone</button>
+      <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="resend-btn">Resend to non-openers</button>
     </div>
     <div id="stats-msg" style="color:var(--silver);margin-top:10px;font-size:.9rem"></div>
     </div>`;

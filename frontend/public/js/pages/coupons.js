@@ -27,15 +27,15 @@ export default async function mount(root) {
         <td>${c.usesLeft ?? '∞'}</td>
         <td><span class="status-${status(c)}">${status(c)}</span></td>
         <td style="white-space:nowrap;display:flex;gap:6px;justify-content:flex-end">
-          <button class="btn-ghost" data-action="edit" data-code="${escapeHtml(c.code)}">Edit</button>
-          <button class="btn-ghost" data-action="toggle" data-code="${escapeHtml(c.code)}">${c.active ? 'Off' : 'On'}</button>
-          <button class="btn-danger" data-action="delete" data-code="${escapeHtml(c.code)}">Delete</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-action="edit" data-code="${escapeHtml(c.code)}">Edit</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" data-action="toggle" data-code="${escapeHtml(c.code)}">${c.active ? 'Off' : 'On'}</button>
+          <button class="btn-danger" data-ui="btn" data-variant="danger" data-action="delete" data-code="${escapeHtml(c.code)}">Delete</button>
         </td>
       </tr>`).join('');
 
     root.innerHTML = `
       <h2 style="color:var(--gold)">Coupons</h2>
-      <button class="btn-primary" id="new-btn" style="margin-bottom:16px">+ New coupon</button>
+      <button class="btn-primary" data-ui="btn" data-variant="primary" id="new-btn" style="margin-bottom:16px">+ New coupon</button>
       <table class="data-table">
         <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Products</th><th>Expires</th><th>Uses left</th><th>Status</th><th></th></tr></thead>
         <tbody>${rows}</tbody>
@@ -103,8 +103,8 @@ export default async function mount(root) {
         ${isEdit ? `<div class="form-field"><label>Status</label>
           <select id="f-active"><option value="true" ${initial.active ? 'selected' : ''}>Active</option><option value="false" ${!initial.active ? 'selected' : ''}>Inactive</option></select></div>` : ''}
         <div class="modal-actions">
-          <button class="btn-ghost" id="cancel">Cancel</button>
-          <button class="btn-primary" id="save">Preview</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="save">Preview</button>
         </div>
         <div class="modal-msg" id="fmsg"></div>
       </div>`;

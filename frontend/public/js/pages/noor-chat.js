@@ -10,7 +10,7 @@ export default async function mount(root) {
     <div id="thread" style="background:var(--surface);padding:16px;border-radius:10px;min-height:300px;max-height:60vh;overflow-y:auto;margin:16px 0"></div>
     <div class="form-field" style="display:flex;gap:8px;margin:0">
       <input id="prompt" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--ivory);padding:10px;border-radius:6px;font:inherit" placeholder="Ask Noor…" />
-      <button class="btn-primary" id="send-btn">Send</button>
+      <button class="btn-primary" data-ui="btn" data-variant="primary" id="send-btn">Send</button>
     </div>
     <div id="cost" style="color:var(--silver);font-size:.8rem;margin-top:8px"></div>`;
 
@@ -38,7 +38,7 @@ export default async function mount(root) {
         <ul style="font:inherit;color:var(--ivory);margin:6px 0 10px 20px">
           ${data.pendingWrites.map(w => `<li><code>${escapeHtml(w.name)}</code> ${escapeHtml(JSON.stringify(w.input))}</li>`).join('')}
         </ul>
-        <div style="display:flex;gap:8px"><button class="btn-danger" data-a="reject">Reject</button><button class="btn-primary" data-a="approve">Approve + execute</button></div>`
+        <div style="display:flex;gap:8px"><button class="btn-danger" data-ui="btn" data-variant="danger" data-a="reject">Reject</button><button class="btn-primary" data-ui="btn" data-variant="primary" data-a="approve">Approve + execute</button></div>`
         : '<p style="color:var(--silver);font-size:.85rem;margin-top:8px">Read-only plan — already executed.</p>'}
       ${data.autoResults?.length ? `<details style="margin-top:10px"><summary style="color:var(--silver);font-size:.8rem">Tool results</summary><pre style="white-space:pre-wrap;font:inherit;font-size:.8rem">${escapeHtml(JSON.stringify(data.autoResults, null, 2))}</pre></details>` : ''}`;
     thread.appendChild(card);

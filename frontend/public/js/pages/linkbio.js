@@ -65,17 +65,17 @@ export default async function mount(root) {
 
     root.innerHTML = `
       <h2 style="color:var(--gold)">Link-in-Bio</h2>
-      <div style="margin-bottom:16px"><button class="btn-primary" id="lb-open-public" style="display:inline-flex;align-items:center;gap:8px">Open public page ↗</button></div>
+      <div style="margin-bottom:16px"><button class="btn-primary" data-ui="btn" data-variant="primary" id="lb-open-public" style="display:inline-flex;align-items:center;gap:8px">Open public page ↗</button></div>
 
       <section style="background:var(--surface);padding:16px;border-radius:10px;margin-bottom:20px">
         <h3 style="color:var(--gold);margin-bottom:12px">Header</h3>
         <div class="form-field"><label>Photo URL</label><input id="h-photo" value="${escapeHtml(state.header.photoURL)}" /></div>
         <div class="form-field"><label>Tagline AR</label><input id="h-ar" value="${escapeHtml(state.header.taglineAR)}" /></div>
         <div class="form-field"><label>Tagline EN</label><input id="h-en" value="${escapeHtml(state.header.taglineEN)}" /></div>
-        <button class="btn-primary" id="save-header">Save header</button>
+        <button class="btn-primary" data-ui="btn" data-variant="primary" id="save-header">Save header</button>
       </section>
 
-      <button class="btn-primary" id="add-btn" style="margin-bottom:12px">+ Add link</button>
+      <button class="btn-primary" data-ui="btn" data-variant="primary" id="add-btn" style="margin-bottom:12px">+ Add link</button>
       <ul class="linkbio-list">${rows}</ul>`;
 
     const list = root.querySelector('.linkbio-list');
@@ -141,8 +141,8 @@ export default async function mount(root) {
         <div class="form-field"><label>Icon / emoji</label><input id="icon" value="${escapeHtml(initial.icon || '')}" /></div>
         <div class="form-field"><label>Description (optional)</label><input id="description" value="${escapeHtml(initial.description || '')}" /></div>
         <div class="modal-actions">
-          <button class="btn-ghost" id="cancel">Cancel</button>
-          <button class="btn-primary" id="ok">Preview</button>
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="ok">Preview</button>
         </div>
         <div class="modal-msg" id="msg"></div>
       </div>`;
