@@ -72,8 +72,28 @@ export default async function mount(root) {
           <input id="f-value" type="number" step="any" value="${initial.value ?? ''}" /></div>
         <div class="form-field"><label>Min amount (SAR)</label>
           <input id="f-min" type="number" step="any" value="${initial.minSAR ?? 0}" /></div>
-        <div class="form-field"><label>Products (csv or "all")</label>
-          <input id="f-products" value="${escapeHtml(initial.products || 'all')}" /></div>
+        <div class="form-field"><label>Products this coupon applies to</label>
+          <div id="f-products-group" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;background:#0a0a0a;border:1px solid #2a2a2a;border-radius:6px">
+            ${(() => {
+              const current = String(initial.products || 'all').split(',').map(s => s.trim()).filter(Boolean);
+              const isAll = current.includes('all') || current.length === 0;
+              const options = [
+                { key: 'all', label: 'All products' },
+                { key: 'intro-to-creative-ai', label: 'T2 — Intro to Creative AI' },
+                { key: 'creative-ai-workshop-t3', label: 'T3 — Creative AI Workshop' },
+                { key: 'beyond-lighting', label: 'Beyond Lighting' },
+                { key: 'prompt-pack', label: 'Prompt Pack' },
+              ];
+              return options.map(o => {
+                const checked = o.key === 'all' ? isAll : (!isAll && current.includes(o.key));
+                return `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:.88rem;color:#ddd;margin:0">
+                  <input type="checkbox" class="f-prod" value="${o.key}" ${checked ? 'checked' : ''} style="width:auto;margin:0" />
+                  ${escapeHtml(o.label)}
+                </label>`;
+              }).join('');
+            })()}
+          </div>
+        </div>
         <div class="form-field"><label>Starts (YYYY-MM-DD)</label>
           <input id="f-start" type="date" value="${escapeHtml((initial.startDate || '').slice(0, 10))}" /></div>
         <div class="form-field"><label>Expires (YYYY-MM-DD)</label>
@@ -89,14 +109,34 @@ export default async function mount(root) {
         <div class="modal-msg" id="fmsg"></div>
       </div>`;
     document.body.appendChild(form);
+
+    // Products group: checking "all" un-checks the specific ones, and vice-versa.
+    const prodGroup = form.querySelector('#f-products-group');
+    prodGroup.addEventListener('change', (e) => {
+      const t = e.target;
+      if (!t.classList.contains('f-prod')) return;
+      const allBox = prodGroup.querySelector('.f-prod[value="all"]');
+      const specific = Array.from(prodGroup.querySelectorAll('.f-prod')).filter(b => b.value !== 'all');
+      if (t.value === 'all' && t.checked) {
+        specific.forEach(b => (b.checked = false));
+      } else if (t.value !== 'all' && t.checked) {
+        allBox.checked = false;
+      }
+      // If nothing is checked, default back to "all".
+      const anyChecked = Array.from(prodGroup.querySelectorAll('.f-prod')).some(b => b.checked);
+      if (!anyChecked) allBox.checked = true;
+    });
+
     form.querySelector('#cancel').onclick = () => form.remove();
     form.querySelector('#save').onclick = async () => {
       const code = form.querySelector('#f-code').value.trim();
+      const prodChecked = Array.from(prodGroup.querySelectorAll('.f-prod:checked')).map(b => b.value);
+      const productsValue = prodChecked.includes('all') || prodChecked.length === 0 ? 'all' : prodChecked.join(',');
       const values = {
         type: form.querySelector('#f-type').value,
         value: Number(form.querySelector('#f-value').value),
         minSAR: Number(form.querySelector('#f-min').value || 0),
-        products: form.querySelector('#f-products').value.trim() || 'all',
+        products: productsValue,
         startDate: form.querySelector('#f-start').value,
         endDate: form.querySelector('#f-end').value,
         usesLeft: form.querySelector('#f-cap').value === '' ? null : Number(form.querySelector('#f-cap').value),
