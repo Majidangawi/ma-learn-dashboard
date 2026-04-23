@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { mountComposer } from '../composer/index.js';
 
 const SOURCE_LABELS = { buyer: 'buyer', waitlist: 'waitlist', website: 'website', lib: 'lib' };
 const PRODUCT_LABELS = {
@@ -204,12 +205,11 @@ export default async function mount(root) {
         <button class="detail-close" id="d-close" title="Close">×</button>
       </div>
 
-      <!-- Action bar is a placeholder here; wired in Stage B. -->
       <div class="action-bar" id="d-actions">
-        <button class="primary" data-act="email" disabled title="Wired in Stage B">✉ Send email</button>
-        <button data-act="resend" disabled title="Wired in Stage B">🔗 Resend link</button>
-        <button data-act="gift" disabled title="Wired in Stage B">🎁 Gift</button>
-        <button class="danger" data-act="delete" disabled title="Wired in Stage B">🗑 Delete</button>
+        <button class="primary" data-act="email">✉ Send email</button>
+        <button data-act="resend" ${c.tokens.length===0?'disabled title="No active courses to resend"':''}>🔗 Resend link</button>
+        <button data-act="gift">🎁 Gift</button>
+        <button class="danger" data-act="delete">🗑 Delete</button>
       </div>
 
       <div class="detail-section">
@@ -274,6 +274,10 @@ export default async function mount(root) {
       };
     });
 
+    el.querySelectorAll('.action-bar button').forEach(btn => {
+      btn.onclick = () => onAction(btn.dataset.act, c);
+    });
+
     // Keyboard nav: Escape closes, j/k & arrows move between rows.
     document.onkeydown = (e) => {
       if (e.key === 'Escape' && state.selectedEmail) {
@@ -296,6 +300,213 @@ export default async function mount(root) {
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 3000);
+  }
+
+  async function onAction(act, c) {
+    if (act === 'email')   return actionSendEmail(c);
+    if (act === 'resend')  return actionResendLink(c);
+    if (act === 'gift')    return actionGift(c);
+    if (act === 'delete')  return actionDelete(c);
+  }
+
+  function actionSendEmail(c) {
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = `
+      <div class="modal-card" style="max-width:1100px;max-height:92vh;overflow-y:auto">
+        <h3>Send email to ${escapeHtml(c.name || c.email)}</h3>
+        <p style="color:var(--c-ink-2);font-size:.85rem;margin-bottom:10px">
+          Recipient: <strong>${escapeHtml(c.email)}</strong>
+        </p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-field"><label>Subject</label><input id="e-subj" value="" /></div>
+          <div class="form-field"><label>Language</label>
+            <select id="e-lang">
+              <option value="${c.language}">${c.language==='AR'?'العربية':'English'}</option>
+              <option value="${c.language==='AR'?'EN':'AR'}">${c.language==='AR'?'English':'العربية'}</option>
+            </select></div>
+        </div>
+        <div id="e-composer"></div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="e-cancel">Cancel</button>
+          <button class="btn-primary" id="e-send">Send</button>
+        </div>
+        <div class="modal-msg" id="e-msg"></div>
+      </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+
+    let blocks = [];
+    const subjEl = o.querySelector('#e-subj');
+    const comp = mountComposer({
+      root: o.querySelector('#e-composer'),
+      initialBlocks: [],
+      language: c.language,
+      onChange: b => { blocks = b; },
+      getHeader: () => ({ subject: subjEl.value, preheader: '' }),
+    });
+    subjEl.addEventListener('input', () => comp.refreshPreview());
+
+    o.querySelector('#e-cancel').onclick = () => o.remove();
+    o.querySelector('#e-send').onclick = async () => {
+      const subject = subjEl.value.trim();
+      if (!subject) { o.querySelector('#e-msg').textContent = 'Subject required.'; return; }
+      o.querySelector('#e-msg').textContent = 'Sending…';
+      try {
+        const save = await api('/api/writes/newsletter/save', {
+          method: 'POST',
+          body: JSON.stringify({
+            subject, preheader: '',
+            language: o.querySelector('#e-lang').value,
+            blocks,
+            segmentFilter: { onlyEmails: [c.email] },
+          }),
+        });
+        const send = await api('/api/writes/newsletter/send_now', {
+          method: 'POST',
+          body: JSON.stringify({ newsletterId: save.newsletterId }),
+        });
+        if (send.ok) {
+          o.querySelector('#e-msg').textContent = `Sent to ${send.sent} recipient.`;
+          setTimeout(() => o.remove(), 1200);
+        } else {
+          o.querySelector('#e-msg').textContent = `Error: ${send.error || 'unknown'}`;
+        }
+      } catch (e) {
+        o.querySelector('#e-msg').textContent = `Error: ${e.message}`;
+      }
+    };
+  }
+
+  async function actionResendLink(c) {
+    if (c.tokens.length === 0) return;
+    let product;
+    if (c.tokens.length === 1) {
+      product = c.tokens[0].product;
+    } else {
+      const options = c.tokens.map((t, i) => `${i + 1}. ${PRODUCT_LABELS[t.product] || t.product}`).join('\n');
+      const pick = prompt(`Which course to resend?\n${options}\n\nType 1–${c.tokens.length}:`);
+      const idx = Number(pick) - 1;
+      if (!(idx >= 0 && idx < c.tokens.length)) return;
+      product = c.tokens[idx].product;
+    }
+    toast('Resending…');
+    try {
+      const r = await api('/api/writes/contact/resend_link', {
+        method: 'POST', body: JSON.stringify({ email: c.email, product }),
+      });
+      if (r.ok) toast(`Resent ${PRODUCT_LABELS[product] || product} access ✓`, 'success');
+      else toast(`Error: ${r.error || 'unknown'}`, 'error');
+    } catch (e) {
+      toast(`Error: ${e.message}`, 'error');
+    }
+  }
+
+  function actionGift(c) {
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = `
+      <div class="modal-card" style="max-width:480px">
+        <h3>Gift access to ${escapeHtml(c.name || c.email)}</h3>
+        <div class="form-field">
+          <label>Which course?</label>
+          <select id="g-product">
+            <option value="">— Pick —</option>
+            <option value="intro-to-creative-ai">T2 — Intro to Creative AI</option>
+            <option value="creative-ai-workshop-t3">T3 — Creative AI Workshop</option>
+            <option value="beyond-lighting">Beyond Lighting</option>
+            <option value="prompt-pack">Prompt Pack</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label>Optional note (included in the email)</label>
+          <textarea id="g-note" rows="3"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="g-cancel">Cancel</button>
+          <button class="btn-primary" id="g-go">Gift it</button>
+        </div>
+        <div class="modal-msg" id="g-msg"></div>
+      </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+    o.querySelector('#g-cancel').onclick = () => o.remove();
+    o.querySelector('#g-go').onclick = async () => {
+      const product = o.querySelector('#g-product').value;
+      const note = o.querySelector('#g-note').value.trim();
+      if (!product) { o.querySelector('#g-msg').textContent = 'Pick a course.'; return; }
+      o.querySelector('#g-msg').textContent = 'Gifting…';
+      try {
+        const r = await api('/api/writes/contact/gift', {
+          method: 'POST', body: JSON.stringify({ email: c.email, product, name: c.name, note }),
+        });
+        if (r.ok) {
+          o.querySelector('#g-msg').textContent = 'Gifted ✓ — detail refreshing…';
+          setTimeout(async () => {
+            o.remove();
+            await loadDetail(c.email);
+            await loadList();
+          }, 900);
+        } else {
+          o.querySelector('#g-msg').textContent = `Error: ${r.error || 'unknown'}`;
+        }
+      } catch (e) {
+        o.querySelector('#g-msg').textContent = `Error: ${e.message}`;
+      }
+    };
+  }
+
+  function actionDelete(c) {
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = `
+      <div class="modal-card" style="max-width:480px">
+        <h3>Delete this contact?</h3>
+        <div class="delete-preview">
+          <div class="n">${escapeHtml(c.name || '—')}</div>
+          <div class="e">${escapeHtml(c.email)}</div>
+          <div class="facts">
+            Sources: ${escapeHtml(c.sources.join(', ') || '—')}<br>
+            ${c.purchases.length} purchases · ${c.tokens.length} tokens
+          </div>
+        </div>
+        <p style="color:var(--c-ink-2);font-size:.85rem;line-height:1.5">
+          This removes their row from the Subscribers sheet. Their purchase
+          history, tokens, and access stay intact — they can still log in with
+          existing access links. They simply stop receiving newsletters and
+          won't appear in Contacts.
+        </p>
+        <p style="color:var(--c-ink-3);font-size:.78rem">
+          To fully revoke access, edit the Tokens sheet directly.
+        </p>
+        <div class="modal-actions">
+          <button class="btn-ghost" id="x-cancel">Cancel</button>
+          <button class="btn-primary" id="x-go" style="background:var(--c-danger);color:#fff">Delete this contact</button>
+        </div>
+        <div class="modal-msg" id="x-msg"></div>
+      </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+    o.querySelector('#x-cancel').onclick = () => o.remove();
+    o.querySelector('#x-go').onclick = async () => {
+      o.querySelector('#x-msg').textContent = 'Deleting…';
+      try {
+        const r = await api('/api/writes/contact/delete', {
+          method: 'POST', body: JSON.stringify({ email: c.email }),
+        });
+        if (r.ok) {
+          o.remove();
+          toast('Deleted ✓', 'success');
+          state.selectedEmail = null; state.selectedDetail = null;
+          await loadList();
+          render();
+        } else {
+          o.querySelector('#x-msg').textContent = `Error: ${r.error || 'unknown'}`;
+        }
+      } catch (e) {
+        o.querySelector('#x-msg').textContent = `Error: ${e.message}`;
+      }
+    };
   }
 
   render();
