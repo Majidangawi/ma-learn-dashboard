@@ -1,6 +1,5 @@
 const NAV = [
   { id: 'home', label: 'Home', href: '#home' },
-  { id: 'customers', label: 'Customers', href: '#customers' },
   { id: 'emails', label: 'Emails', href: '#emails' },
   { id: 'newsletter', label: 'Newsletter', href: '#newsletter' },
   { id: 'contacts', label: 'Contacts', href: '#contacts' },
@@ -8,7 +7,6 @@ const NAV = [
   { id: 'lessons', label: 'Lessons', href: '#lessons' },
   { id: 'linkbio', label: 'Link-in-bio', href: '#linkbio' },
   { id: 'noor', label: 'Noor chat', href: '#noor' },
-  { id: 'settings', label: 'Settings', href: '#settings' },
 ];
 
 export function mountSidebar(root) {

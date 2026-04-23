@@ -7,8 +7,6 @@ const ROUTES = {
   coupons: () => import('./pages/coupons.js'),
   linkbio: () => import('./pages/linkbio.js'),
   noor: () => import('./pages/noor-chat.js'),
-  customers: () => import('./pages/home.js'),
-  settings: () => import('./pages/home.js'),
 };
 
 export async function startRouter({ content, sidebar }) {

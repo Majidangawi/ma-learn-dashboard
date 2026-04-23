@@ -65,7 +65,7 @@ export default async function mount(root) {
 
     root.innerHTML = `
       <h2 style="color:var(--gold)">Link-in-Bio</h2>
-      <p style="color:var(--silver);margin-bottom:16px">Public page: <a href="https://link-staging.malearnsa.com" target="_blank">link-staging.malearnsa.com</a></p>
+      <p style="color:var(--silver);margin-bottom:16px">Public page: <a href="https://linkinbio.malearnsa.com" target="_blank">linkinbio.malearnsa.com</a></p>
 
       <section style="background:var(--surface);padding:16px;border-radius:10px;margin-bottom:20px">
         <h3 style="color:var(--gold);margin-bottom:12px">Header</h3>
