@@ -3,6 +3,7 @@ const NAV = [
   { id: 'customers', label: 'Customers', href: '#customers' },
   { id: 'emails', label: 'Emails', href: '#emails' },
   { id: 'newsletter', label: 'Newsletter', href: '#newsletter' },
+  { id: 'contacts', label: 'Contacts', href: '#contacts' },
   { id: 'coupons', label: 'Coupons', href: '#coupons' },
   { id: 'lessons', label: 'Lessons', href: '#lessons' },
   { id: 'linkbio', label: 'Link-in-bio', href: '#linkbio' },

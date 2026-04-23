@@ -3,6 +3,7 @@ const ROUTES = {
   lessons: () => import('./pages/lessons.js'),
   emails: () => import('./pages/emails.js'),
   newsletter: () => import('./pages/newsletter.js'),
+  contacts: () => import('./pages/contacts.js'),
   coupons: () => import('./pages/coupons.js'),
   linkbio: () => import('./pages/linkbio.js'),
   noor: () => import('./pages/noor-chat.js'),
