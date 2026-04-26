@@ -164,7 +164,7 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
       extraApproval: z.boolean().optional(),
     }).parse(req.body);
     const [templates, customers] = await Promise.all([
-      readEmailTemplates(sheets, sid), readCustomers(sheets, sid),
+      readEmailTemplates(sheets, adminSid), readCustomers(sheets, sid),
     ]);
     const tpl = templates.find(t => t.templateId === body.templateId);
     if (!tpl) return reply.code(404).send({ error: 'template_not_found' });
@@ -202,7 +202,7 @@ export async function writesRoutes(app: FastifyInstance, config: Config): Promis
 
   app.post('/api/writes/linkbio_update', async (req, reply) => {
     const body = z.object({ linkId: z.string(), patch: z.record(z.unknown()) }).parse(req.body);
-    const items = await readLinkbio(sheets, sid);
+    const items = await readLinkbio(sheets, adminSid);
     const cur = items.find(x => x.linkId === body.linkId);
     if (!cur) return reply.code(404).send({ error: 'link_not_found' });
     const preview = previewLinkbioUpdate(cur, body.patch as Record<string, unknown>);
