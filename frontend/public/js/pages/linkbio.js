@@ -127,8 +127,8 @@ export default async function mount(root) {
     const cur = state.items.find(i => i.linkId === id);
     showForm('Edit link', cur, async (vals) => {
       const patch = {};
-      for (const [k, v] of Object.entries(vals)) if (v !== cur[k]) patch[k] = v;
-      if (!Object.keys(patch).length) return;
+      for (const [k, v] of Object.entries(vals)) if (v !== (cur[k] ?? '')) patch[k] = v;
+      if (!Object.keys(patch).length) throw new Error('No changes to save');
       const stage = await api('/api/writes/linkbio_update', { method: 'POST', body: JSON.stringify({ linkId: id, patch }) });
       openApprovalModal({
         title: 'Confirm link update', previewHtml: renderLinkbioUpdatePreview(stage.preview), pendingWriteId: stage.id,
@@ -137,6 +137,12 @@ export default async function mount(root) {
     });
   }
   function showForm(title, initial, onSubmit) {
+    const iconKeys = Object.keys(ICON_SVGS);
+    const initialIcon = String(initial.icon || '');
+    const iconButtons = [
+      `<button type="button" class="icon-pick-btn${initialIcon === '' ? ' is-selected' : ''}" data-icon="" title="None" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--c-line);border-radius:8px;background:transparent;color:var(--c-fg-2);cursor:pointer;font:inherit"><span style="font-size:12px;color:var(--c-fg-3)">None</span></button>`,
+      ...iconKeys.map(k => `<button type="button" class="icon-pick-btn${initialIcon.toLowerCase() === k ? ' is-selected' : ''}" data-icon="${k}" title="${k}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--c-line);border-radius:8px;background:transparent;color:var(--c-fg-2);cursor:pointer;font:inherit">${ICON_SVGS[k]}<span style="font-size:12px;color:var(--c-fg-3);text-transform:capitalize">${k}</span></button>`),
+    ].join('');
     const o = document.createElement('div');
     o.className = 'modal-overlay';
     o.innerHTML = `
@@ -145,19 +151,50 @@ export default async function mount(root) {
         <div class="form-field"><label>Title AR</label><input id="titleAR" value="${escapeHtml(initial.titleAR || '')}" /></div>
         <div class="form-field"><label>Title EN</label><input id="titleEN" value="${escapeHtml(initial.titleEN || '')}" /></div>
         <div class="form-field"><label>URL</label><input id="url" value="${escapeHtml(initial.url || '')}" /></div>
-        <div class="form-field"><label>Icon / emoji</label><input id="icon" value="${escapeHtml(initial.icon || '')}" /></div>
+        <div class="form-field">
+          <label>Icon</label>
+          <div id="icon-picker" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">${iconButtons}</div>
+          <input type="hidden" id="icon" value="${escapeHtml(initialIcon)}" />
+        </div>
         <div class="form-field"><label>Description (optional)</label><input id="description" value="${escapeHtml(initial.description || '')}" /></div>
         <div class="modal-actions">
           <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="cancel">Cancel</button>
           <button class="btn-primary" data-ui="btn" data-variant="primary" id="ok">Preview</button>
         </div>
-        <div class="modal-msg" id="msg"></div>
+        <div class="modal-msg" id="msg" aria-live="polite"></div>
       </div>`;
     document.body.appendChild(o);
+    const iconInput = o.querySelector('#icon');
+    const picker = o.querySelector('#icon-picker');
+    picker.addEventListener('click', (e) => {
+      const btn = e.target.closest('.icon-pick-btn');
+      if (!btn) return;
+      iconInput.value = btn.dataset.icon || '';
+      for (const b of picker.querySelectorAll('.icon-pick-btn')) {
+        const on = b === btn;
+        b.classList.toggle('is-selected', on);
+        b.style.background = on ? 'var(--c-ink-2)' : 'transparent';
+        b.style.borderColor = on ? 'var(--c-accent, var(--c-fg-2))' : 'var(--c-line)';
+      }
+    });
+    for (const b of picker.querySelectorAll('.icon-pick-btn.is-selected')) {
+      b.style.background = 'var(--c-ink-2)';
+      b.style.borderColor = 'var(--c-accent, var(--c-fg-2))';
+    }
     o.querySelector('#cancel').onclick = () => o.remove();
     o.querySelector('#ok').onclick = async () => {
       const vals = ['titleAR','titleEN','url','icon','description'].reduce((a, k) => (a[k] = o.querySelector('#'+k).value, a), {});
-      try { o.remove(); await onSubmit(vals); } catch (e) { o.querySelector('#msg').textContent = 'Error: '+e.message; }
+      const okBtn = o.querySelector('#ok');
+      const msg = o.querySelector('#msg');
+      okBtn.disabled = true;
+      msg.textContent = '';
+      try {
+        await onSubmit(vals);
+        o.remove();
+      } catch (e) {
+        okBtn.disabled = false;
+        msg.textContent = 'Error: ' + (e?.message || e);
+      }
     };
   }
   async function deleteItem(id) {

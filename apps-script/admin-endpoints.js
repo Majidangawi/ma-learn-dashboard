@@ -139,7 +139,7 @@ function adminDeleteCoupon(params) {
 
 function adminAddLinkbio(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
-  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const ss = SpreadsheetApp.openById(ADMIN_SHEET_ID);
   const sh = ss.getSheetByName('LinkInBio');
   if (!sh) return { ok: false, error: 'no LinkInBio tab' };
   const linkId = 'LNK-' + Utilities.getUuid().slice(0, 8).toUpperCase();
@@ -162,8 +162,9 @@ function adminAddLinkbio(params) {
 function adminUpdateLinkbio(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
   const id = String(params.link_id || '');
-  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const ss = SpreadsheetApp.openById(ADMIN_SHEET_ID);
   const sh = ss.getSheetByName('LinkInBio');
+  if (!sh) return { ok: false, error: 'no LinkInBio tab' };
   const data = sh.getDataRange().getValues();
   const fields = { title_ar: 2, title_en: 3, url: 4, icon: 5, description: 6, active: 7, order: 8 };
   for (let r = 1; r < data.length; r++) {
@@ -186,8 +187,9 @@ function adminUpdateLinkbio(params) {
 function adminDeleteLinkbio(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
   const id = String(params.link_id || '');
-  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const ss = SpreadsheetApp.openById(ADMIN_SHEET_ID);
   const sh = ss.getSheetByName('LinkInBio');
+  if (!sh) return { ok: false, error: 'no LinkInBio tab' };
   const data = sh.getDataRange().getValues();
   for (let r = 1; r < data.length; r++) {
     if (String(data[r][0]) === id) {
@@ -200,8 +202,9 @@ function adminDeleteLinkbio(params) {
 
 function adminUpdateLinkbioHeader(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
-  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const ss = SpreadsheetApp.openById(ADMIN_SHEET_ID);
   const sh = ss.getSheetByName('LinkInBioHeader');
+  if (!sh) return { ok: false, error: 'no LinkInBioHeader tab' };
   const data = sh.getDataRange().getValues();
   const updates = {};
   if (params.photo_url !== undefined) updates.PhotoURL = params.photo_url;
@@ -217,8 +220,9 @@ function adminUpdateLinkbioHeader(params) {
 function adminIncrementLinkbioClick(params) {
   // No admin_token check — called from the public link.malearnsa.com page.
   const id = String(params.link_id || '');
-  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const ss = SpreadsheetApp.openById(ADMIN_SHEET_ID);
   const sh = ss.getSheetByName('LinkInBio');
+  if (!sh) return { ok: false, error: 'no LinkInBio tab' };
   const data = sh.getDataRange().getValues();
   for (let r = 1; r < data.length; r++) {
     if (String(data[r][0]) === id) {
@@ -232,7 +236,7 @@ function adminIncrementLinkbioClick(params) {
 
 function adminAddEmailTemplate(params) {
   if (params.admin_token !== ADMIN_TOKEN) return { ok: false, error: 'unauthorized' };
-  const ss = SpreadsheetApp.openById(MAIN_SHEET_ID);
+  const ss = SpreadsheetApp.openById(ADMIN_SHEET_ID);
   const sh = ss.getSheetByName('EmailTemplates');
   if (!sh) return { ok: false, error: 'no EmailTemplates tab' };
   const templateId = String(params.template_id || ('tpl-' + Utilities.getUuid().slice(0, 8).toLowerCase()));
