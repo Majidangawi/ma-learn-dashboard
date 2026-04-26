@@ -15,7 +15,8 @@ export async function api(path, opts = {}) {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `http_${res.status}`);
+    const detail = body.message && body.message !== body.error ? `: ${body.message}` : '';
+    throw new Error((body.error ?? `http_${res.status}`) + detail);
   }
   return res.json();
 }
