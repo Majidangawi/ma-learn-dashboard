@@ -20,6 +20,9 @@ const NAV = [
     { id: 'contacts',   label: 'Contacts',    href: '#contacts',   icon: 'users' },
     { id: 'coupons',    label: 'Coupons',     href: '#coupons',    icon: 'ticket' },
   ]},
+  { section: 'REVENUE', items: [
+    { id: 'purchases',  label: 'Pending Transfers', href: '#purchases', icon: 'file-text' },
+  ]},
 ];
 
 export function mountSidebar(root, { user = 'Majid', env = 'staging' } = {}) {

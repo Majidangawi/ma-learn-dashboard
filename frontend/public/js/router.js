@@ -7,6 +7,7 @@ const ROUTES = {
   contacts:  () => import('./pages/contacts.js'),
   coupons:   () => import('./pages/coupons.js'),
   linkbio:   () => import('./pages/linkbio.js'),
+  purchases: () => import('./pages/purchases.js'),
 };
 
 export async function startRouter({ content, onRouteChange }) {
