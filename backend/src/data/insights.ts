@@ -1,5 +1,6 @@
 import type { Customer } from './sheets-read.js';
 import type { Token } from './read-extra.js';
+import { CURRENT_T3_COHORT, T3_SEATS_TOTAL, countT3CohortSeats } from './home-kpis.js';
 
 export interface InsightsInput {
   customers: Customer[];
@@ -22,9 +23,6 @@ export interface Insights {
   scheduledActions: { label: string; when: string }[];
   recentBuyers: { email: string; name: string; product: string; amountSAR: number; purchasedAt: string }[];
 }
-
-const T3_PRODUCT = 'creative-ai-workshop-t3';
-const T3_SEATS = 30;
 
 function parseDate(s: string): Date | null {
   if (!s) return null;
@@ -68,7 +66,7 @@ export function computeInsights(input: InsightsInput): Insights {
   for (const [date, sar] of byDay) revenue30Days.push({ date, sar });
   revenue30Days.sort((a, b) => a.date.localeCompare(b.date));
 
-  const t3SeatsFilled = customers.filter(c => c.product === T3_PRODUCT).length;
+  const t3SeatsFilled = countT3CohortSeats(customers, CURRENT_T3_COHORT);
 
   const recentBuyers = [...customers]
     .filter(c => parseDate(c.purchasedAt))
@@ -81,7 +79,7 @@ export function computeInsights(input: InsightsInput): Insights {
     newRegistrationsMTD: uniqueEmailsMTD.size,
     anthropicSpendUSD: input.anthropicSpendUSD ?? 0,
     revenue30Days,
-    t3SeatsFilled, t3SeatsTotal: T3_SEATS,
+    t3SeatsFilled, t3SeatsTotal: T3_SEATS_TOTAL,
     pendingApprovals: input.pendingApprovals ?? 0,
     scheduledActions: input.scheduledActions ?? [],
     recentBuyers,

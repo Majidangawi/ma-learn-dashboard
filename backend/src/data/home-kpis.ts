@@ -1,4 +1,5 @@
 import type { Token } from './read-extra.js';
+import type { Customer } from './sheets-read.js';
 
 // TODO: move product prices to a Products sheet (or similar) so non-engineers
 // can update them without a deploy. Hardcoded for v1 of the Home briefing.
@@ -8,6 +9,30 @@ export const PRODUCT_PRICE_SAR: Record<string, number> = {
   'beyond-lighting':         700,
   'prompt-pack':             99,
 };
+
+// Currently selling T3 cohort. Source-of-truth for "T3 Cohort N seats" UI.
+// Bump when C3 opens — Apps Script `getT3SeatsTaken('C2')` default in
+// token-validator must move in lock-step (see Code.js cohort default at line ~412).
+export const CURRENT_T3_COHORT = 'C2';
+export const T3_PRODUCT = 'creative-ai-workshop-t3';
+export const T3_SEATS_TOTAL = 30;
+
+/** Mirrors token-validator getT3SeatsTaken(cohort): counts Customers rows
+ *  where Product=T3 AND Cohort matches AND Status='active' (default 'active'
+ *  if cell is empty so legacy rows tagged with the cohort still count). */
+export function countT3CohortSeats(customers: Customer[], cohort: string): number {
+  const want = cohort.trim().toUpperCase();
+  let n = 0;
+  for (const c of customers) {
+    if (c.product !== T3_PRODUCT) continue;
+    const rowCohort = (c.cohort || '').trim().toUpperCase();
+    if (rowCohort !== want) continue;
+    const rowStatus = (c.status || 'active').trim().toLowerCase();
+    if (rowStatus !== 'active') continue;
+    n++;
+  }
+  return n;
+}
 
 export interface HomeKpis {
   revenueThisWeekSAR: number;
@@ -32,12 +57,12 @@ export function dayKey(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
 }
 
-export function computeHomeKpis(tokens: Token[], now: Date = new Date()): HomeKpis {
+export function computeHomeKpis(tokens: Token[], customers: Customer[], now: Date = new Date()): HomeKpis {
   const weekStart     = startOfISOWeek(now);
   const prevWeekStart = new Date(weekStart); prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7);
   const weekEnd       = new Date(weekStart); weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
 
-  let revThis = 0, revPrev = 0, unitsAll = 0, t3c2Sold = 0;
+  let revThis = 0, revPrev = 0, unitsAll = 0;
   const newEmails = new Set<string>();
   const bucket: Record<string, number> = {};
 
@@ -47,7 +72,6 @@ export function computeHomeKpis(tokens: Token[], now: Date = new Date()): HomeKp
       if (isNaN(at.getTime())) continue;
       const price = PRODUCT_PRICE_SAR[t.product] ?? 0;
       unitsAll++;
-      if (t.product === 'creative-ai-workshop-t3') t3c2Sold++;
       if (at >= weekStart && at < weekEnd) {
         revThis += price;
         if (t.email) newEmails.add(t.email.toLowerCase());
@@ -75,8 +99,8 @@ export function computeHomeKpis(tokens: Token[], now: Date = new Date()): HomeKp
     revenueSparkline:     spark,
     newCustomersThisWeek: newEmails.size,
     activeTokensUnused:   tokens.filter(t => t.status === 'available').length,
-    t3c2SeatsSold:        t3c2Sold,
-    t3c2SeatsTotal:       30,
+    t3c2SeatsSold:        countT3CohortSeats(customers, CURRENT_T3_COHORT),
+    t3c2SeatsTotal:       T3_SEATS_TOTAL,
     totalUnitsSold:       unitsAll,
   };
 }

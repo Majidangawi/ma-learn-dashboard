@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { resolveSegment, substituteVariables } from '../../src/data/segments.js';
 
 const customers = [
-  { email:'a@x.com', name:'A', product:'creative-ai-workshop-t3', amountSAR:799, purchasedAt:'2026-04-15', token:'MAL-A', source:'real' },
-  { email:'b@x.com', name:'B', product:'creative-ai-workshop-t3', amountSAR:799, purchasedAt:'2026-04-16', token:'MAL-B', source:'real' },
-  { email:'c@x.com', name:'C', product:'prompt-pack', amountSAR:99, purchasedAt:'2026-04-10', token:'MAL-C', source:'real' },
+  { email:'a@x.com', name:'A', product:'creative-ai-workshop-t3', amountSAR:799, purchasedAt:'2026-04-15', token:'MAL-A', source:'real', cohort:'', status:'' },
+  { email:'b@x.com', name:'B', product:'creative-ai-workshop-t3', amountSAR:799, purchasedAt:'2026-04-16', token:'MAL-B', source:'real', cohort:'', status:'' },
+  { email:'c@x.com', name:'C', product:'prompt-pack', amountSAR:99, purchasedAt:'2026-04-10', token:'MAL-C', source:'real', cohort:'', status:'' },
 ];
 
 describe('resolveSegment', () => {

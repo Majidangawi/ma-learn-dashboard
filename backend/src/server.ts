@@ -19,6 +19,7 @@ import lessonsReadRoute from './routes/lessons-read.js';
 import activityRoute from './routes/activity.js';
 import homeKpisRoute from './routes/home-kpis.js';
 import { readTokens } from './data/read-extra.js';
+import { readCustomers } from './data/sheets-read.js';
 import writesContactRoute from './routes/writes-contact.js';
 import writesLessonRoute from './routes/writes-lesson.js';
 import { invalidateContactsCache } from './data/contacts.js';
@@ -172,6 +173,7 @@ export async function buildServer() {
 
     await app.register(homeKpisRoute, {
       readTokens: () => readTokens(activitySheets, config.SHEET_ID!),
+      readCustomers: () => readCustomers(activitySheets, config.SHEET_ID!),
       requireAuth: (req) => {
         const u = (req as unknown as { user?: { email?: string } }).user;
         return u?.email ?? null;

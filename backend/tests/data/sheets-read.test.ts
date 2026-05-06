@@ -17,8 +17,24 @@ describe('parseCustomers', () => {
         purchasedAt: '2026-04-01T10:00:00',
         token: 'MAL-ABCD1234',
         source: 'real',
+        cohort: '',
+        status: '',
       },
     ]);
+  });
+
+  it('reads Cohort and Status columns when present (live Customers schema cols M/N)', () => {
+    const rows = [
+      ['Date', 'Email', 'Name', 'Phone', 'Product', 'Amount', 'Coupon', 'PaymentID', 'PaymentMethod', 'R1', 'R2', 'R3', 'Cohort', 'Status'],
+      ['2026-05-05', 'c2buyer@x.com', 'C2 Buyer', '+966500000000', 'creative-ai-workshop-t3', '1199', '', 'pay_1', 'moyasar', '', '', '', 'C2', 'active'],
+      ['2026-04-15', 'c1buyer@x.com', 'C1 Buyer', '+966500000001', 'creative-ai-workshop-t3', '999', '', 'pay_2', 'moyasar', '', '', '', 'C1', 'active'],
+      ['2026-05-04', 'cancelled@x.com', 'Cancelled', '+966500000002', 'creative-ai-workshop-t3', '1199', '', 'pay_3', 'moyasar', '', '', '', 'C2', 'cancelled'],
+    ];
+    const result = parseCustomers(rows);
+    expect(result).toHaveLength(3);
+    expect(result[0]).toMatchObject({ email: 'c2buyer@x.com', cohort: 'C2', status: 'active' });
+    expect(result[1]).toMatchObject({ email: 'c1buyer@x.com', cohort: 'C1', status: 'active' });
+    expect(result[2]).toMatchObject({ email: 'cancelled@x.com', cohort: 'C2', status: 'cancelled' });
   });
 
   it('returns empty array when only header present', () => {

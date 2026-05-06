@@ -47,10 +47,10 @@ describe('previewSendEmail', () => {
     const tpl = { templateId: 'tpl1', name: 't', subjectAR: 'هلا {name}', subjectEN: 'Hi {name}',
       bodyAR: 'أهلاً {name}', bodyEN: 'Hello {name}', variables: ['name'], blocksAR: [], blocksEN: [] };
     const recips = [
-      { email: 'a@x.com', name: 'Alice', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real' },
-      { email: 'b@x.com', name: 'Bob', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real' },
-      { email: 'c@x.com', name: 'Cara', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real' },
-      { email: 'd@x.com', name: 'Dan', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real' },
+      { email: 'a@x.com', name: 'Alice', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real', cohort: '', status: '' },
+      { email: 'b@x.com', name: 'Bob', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real', cohort: '', status: '' },
+      { email: 'c@x.com', name: 'Cara', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real', cohort: '', status: '' },
+      { email: 'd@x.com', name: 'Dan', product: 't3', amountSAR: 799, purchasedAt: '', token: 'T', source: 'real', cohort: '', status: '' },
     ];
     const p = previewSendEmail(tpl, recips, 'AR');
     expect(p.totalRecipients).toBe(4);
@@ -60,7 +60,7 @@ describe('previewSendEmail', () => {
   });
   it('flags requiresExtraApproval when >500', () => {
     const tpl = { templateId: 'tpl1', name: 't', subjectAR: '', subjectEN: 'Hi', bodyAR: '', bodyEN: 'B', variables: [], blocksAR: [], blocksEN: [] };
-    const recips = Array.from({ length: 501 }, (_, i) => ({ email: `u${i}@x.com`, name: `U${i}`, product: 't3', amountSAR: 1, purchasedAt: '', token: '', source: '' }));
+    const recips = Array.from({ length: 501 }, (_, i) => ({ email: `u${i}@x.com`, name: `U${i}`, product: 't3', amountSAR: 1, purchasedAt: '', token: '', source: '', cohort: '', status: '' }));
     const p = previewSendEmail(tpl, recips, 'EN');
     expect(p.requiresExtraApproval).toBe(true);
   });

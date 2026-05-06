@@ -9,6 +9,8 @@ export interface Customer {
   purchasedAt: string;
   token: string;
   source: string;
+  cohort: string;   // 'C1', 'C2', '' for legacy/non-cohort rows
+  status: string;   // 'active' | 'cancelled' | '' (defaults to active)
 }
 
 function pickIndex(header: string[], ...candidates: string[]): number {
@@ -29,6 +31,8 @@ export function parseCustomers(rows: string[][] | undefined): Customer[] {
   const iPurchased = pickIndex(header, 'PurchasedAt', 'Date');
   const iToken = header.indexOf('Token');
   const iSource = header.indexOf('Source');
+  const iCohort = header.indexOf('Cohort');
+  const iStatus = header.indexOf('Status');
   return data
     .filter((r) => r[iEmail])
     .map((r) => ({
@@ -39,6 +43,8 @@ export function parseCustomers(rows: string[][] | undefined): Customer[] {
       purchasedAt: iPurchased >= 0 ? (r[iPurchased] ?? '') : '',
       token: iToken >= 0 ? (r[iToken] ?? '') : '',
       source: iSource >= 0 ? (r[iSource] ?? '') : '',
+      cohort: iCohort >= 0 ? (r[iCohort] ?? '') : '',
+      status: iStatus >= 0 ? (r[iStatus] ?? '') : '',
     }));
 }
 

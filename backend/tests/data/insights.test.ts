@@ -4,7 +4,7 @@ import type { Customer } from '../../src/data/sheets-read.js';
 
 const mkC = (over: Partial<Customer>): Customer => ({
   email: '', name: '', product: '', amountSAR: 0,
-  purchasedAt: '', token: '', source: 'real', ...over,
+  purchasedAt: '', token: '', source: 'real', cohort: '', status: '', ...over,
 });
 
 describe('computeInsights', () => {
@@ -38,14 +38,16 @@ describe('computeInsights', () => {
     expect(computeInsights({ customers, tokens: [], now }).newRegistrationsMTD).toBe(2);
   });
 
-  it('t3 seats filled counts customers with creative-ai-workshop-t3 product', () => {
+  it('t3 seats filled counts only current-cohort active T3 customers', () => {
     const customers = [
-      mkC({ product: 'creative-ai-workshop-t3' }),
-      mkC({ product: 'creative-ai-workshop-t3' }),
-      mkC({ product: 'intro-to-creative-ai' }),
+      mkC({ product: 'creative-ai-workshop-t3', cohort: 'C2', status: 'active' }),     // count
+      mkC({ product: 'creative-ai-workshop-t3', cohort: 'C2', status: 'cancelled' }),  // excluded — cancelled
+      mkC({ product: 'creative-ai-workshop-t3', cohort: 'C1', status: 'active' }),     // excluded — wrong cohort
+      mkC({ product: 'creative-ai-workshop-t3', cohort: '',   status: '' }),           // excluded — legacy untagged
+      mkC({ product: 'intro-to-creative-ai',    cohort: 'C2', status: 'active' }),     // excluded — wrong product
     ];
     const r = computeInsights({ customers, tokens: [], now });
-    expect(r.t3SeatsFilled).toBe(2);
+    expect(r.t3SeatsFilled).toBe(1);
     expect(r.t3SeatsTotal).toBe(30);
   });
 
