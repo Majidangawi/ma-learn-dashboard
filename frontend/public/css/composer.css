@@ -435,6 +435,7 @@
   overflow-y: auto;
 }
 .block-picker { opacity: 1; transform: none; min-width: 240px; }
+.variable-picker { opacity: 1; transform: none; min-width: 240px; }
 .block-picker button,
 .variable-picker button {
   display: flex;
