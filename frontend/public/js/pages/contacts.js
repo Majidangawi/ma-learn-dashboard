@@ -2,7 +2,7 @@ import { api } from '../api.js';
 import { mountComposer } from '../composer/index.js';
 import { icon } from '../ui/icons.js';
 
-const SOURCE_LABELS = { buyer: 'buyer', waitlist: 'waitlist', website: 'website', lib: 'lib' };
+const SOURCE_LABELS = { buyer: 'buyer', waitlist: 'waitlist', website: 'website', lib: 'lib', manual: 'manual' };
 const PRODUCT_LABELS = {
   'intro-to-creative-ai':   'T2',
   'creative-ai-workshop-t3': 'T3',
@@ -16,6 +16,7 @@ const SOURCE_TONE = {
   waitlist: 'warning',
   website:  'default',
   lib:      'default',
+  manual:   'default',
 };
 
 // Status filter "tabs" — newsletter-style underline chips.
@@ -121,8 +122,9 @@ export default async function mount(root) {
     if (!el) return;
     const unsubCount = state.rows.filter(r => r.status === 'unsubscribed').length;
     el.innerHTML = `
-      <div class="contacts-head">
-        <p class="sub">${state.rows.length} contacts · ${unsubCount} unsubscribed</p>
+      <div class="contacts-head" style="display:flex;align-items:center;justify-content:space-between;gap:var(--s-3)">
+        <p class="sub" style="margin:0">${state.rows.length} contacts · ${unsubCount} unsubscribed</p>
+        <button id="c-add" data-ui="btn" data-variant="primary" style="white-space:nowrap">+ Add Manual Contact</button>
       </div>
 
       <nav class="contacts-tabs">
@@ -225,6 +227,8 @@ export default async function mount(root) {
     el.querySelectorAll('.contact-row').forEach(row => {
       row.onclick = () => loadDetail(row.dataset.email);
     });
+    const addBtn = document.getElementById('c-add');
+    if (addBtn) addBtn.onclick = openAddContactModal;
   }
 
   function renderDetail(opts = {}) {
@@ -404,6 +408,84 @@ export default async function mount(root) {
   async function actionCopyEmail(c) {
     try { await navigator.clipboard.writeText(c.email); toast('Email copied ✓', 'success'); }
     catch { toast('Copy failed', 'error'); }
+  }
+
+  function openAddContactModal() {
+    const o = document.createElement('div');
+    o.className = 'modal-overlay';
+    o.innerHTML = `
+      <div class="modal-card" style="max-width:520px">
+        <h3>Add manual contact</h3>
+        <p style="color:var(--c-fg-2);font-size:var(--fs-body-sm);margin-bottom:var(--s-3)">
+          Adds the contact to the Subscribers sheet. They show up in this list with the source you set below.
+        </p>
+        <div data-ui="field">
+          <label for="ac-name">Name</label>
+          <input id="ac-name" data-ui="input" type="text" placeholder="Full name" />
+        </div>
+        <div data-ui="field">
+          <label for="ac-email">Email <span style="color:var(--c-danger)">*</span></label>
+          <input id="ac-email" data-ui="input" type="email" placeholder="name@example.com" required />
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
+          <div data-ui="field">
+            <label for="ac-language">Language</label>
+            <select id="ac-language" data-ui="select">
+              <option value="AR" selected>العربية</option>
+              <option value="EN">English</option>
+            </select>
+          </div>
+          <div data-ui="field">
+            <label for="ac-source">Source label</label>
+            <input id="ac-source" data-ui="input" type="text" value="manual" placeholder="manual, whatsapp, event…" />
+          </div>
+        </div>
+        <div data-ui="field" style="display:flex;align-items:center;gap:var(--s-2);margin-top:var(--s-2)">
+          <input id="ac-welcome" type="checkbox" />
+          <label for="ac-welcome" style="margin:0;cursor:pointer">Send newsletter welcome email</label>
+        </div>
+        <div class="modal-actions">
+          <button class="btn-ghost" data-ui="btn" data-variant="ghost" id="ac-cancel">Cancel</button>
+          <button class="btn-primary" data-ui="btn" data-variant="primary" id="ac-save">Save contact</button>
+        </div>
+        <div class="modal-msg" id="ac-msg" aria-live="polite"></div>
+      </div>`;
+    document.body.appendChild(o);
+    o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
+
+    const msgEl = o.querySelector('#ac-msg');
+    o.querySelector('#ac-cancel').onclick = () => o.remove();
+    o.querySelector('#ac-name').focus();
+
+    o.querySelector('#ac-save').onclick = async () => {
+      const email = o.querySelector('#ac-email').value.trim();
+      const name = o.querySelector('#ac-name').value.trim();
+      const language = o.querySelector('#ac-language').value;
+      const source = o.querySelector('#ac-source').value.trim() || 'manual';
+      const sendWelcome = o.querySelector('#ac-welcome').checked;
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        msgEl.textContent = 'Valid email required.';
+        return;
+      }
+      msgEl.textContent = 'Saving…';
+      try {
+        const r = await api('/api/writes/contact/add', {
+          method: 'POST',
+          body: JSON.stringify({ email, name, language, source, sendWelcome }),
+        });
+        if (r.ok) {
+          msgEl.textContent = r.action === 'updated'
+            ? 'Existing contact updated ✓'
+            : 'Contact added ✓';
+          await loadList();
+          setTimeout(() => o.remove(), 800);
+        } else {
+          msgEl.textContent = `Error: ${r.error || 'unknown'}`;
+        }
+      } catch (e) {
+        msgEl.textContent = `Error: ${e.message}`;
+      }
+    };
   }
 
   function actionSendEmail(c) {
