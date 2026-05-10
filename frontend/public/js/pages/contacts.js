@@ -497,9 +497,15 @@ export default async function mount(root) {
         <p style="color:var(--c-fg-2);font-size:var(--fs-body-sm);margin-bottom:var(--s-3)">
           Recipient: <strong>${escapeHtml(c.email)}</strong>
         </p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s-3)">
-          <div data-ui="field"><label>Subject</label><input data-ui="input" id="e-subj" value="" /></div>
-          <div data-ui="field"><label>Language</label>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:var(--s-3)">
+          <div data-ui="field">
+            <label for="e-template">Template</label>
+            <select data-ui="select" id="e-template">
+              <option value="">— Start blank —</option>
+            </select>
+          </div>
+          <div data-ui="field"><label for="e-subj">Subject</label><input data-ui="input" id="e-subj" value="" /></div>
+          <div data-ui="field"><label for="e-lang">Language</label>
             <select data-ui="select" id="e-lang">
               <option value="${c.language}">${c.language==='AR'?'العربية':'English'}</option>
               <option value="${c.language==='AR'?'EN':'AR'}">${c.language==='AR'?'English':'العربية'}</option>
@@ -516,15 +522,64 @@ export default async function mount(root) {
     o.addEventListener('mousedown', e => { if (e.target === o) o.remove(); });
 
     let blocks = [];
+    let templates = [];
+    let comp = null;
     const subjEl = o.querySelector('#e-subj');
-    const comp = mountComposer({
-      root: o.querySelector('#e-composer'),
-      initialBlocks: [],
-      language: c.language,
-      onChange: b => { blocks = b; },
-      getHeader: () => ({ subject: subjEl.value, preheader: '' }),
+    const langEl = o.querySelector('#e-lang');
+    const tplEl  = o.querySelector('#e-template');
+    const composerRoot = o.querySelector('#e-composer');
+
+    function mountWith(initialBlocks, language) {
+      if (comp) comp.destroy();
+      blocks = initialBlocks || [];
+      comp = mountComposer({
+        root: composerRoot,
+        initialBlocks: blocks,
+        language,
+        onChange: b => { blocks = b; },
+        getHeader: () => ({ subject: subjEl.value, preheader: '' }),
+      });
+    }
+
+    mountWith([], c.language);
+    subjEl.addEventListener('input', () => comp && comp.refreshPreview());
+
+    function applyTemplate() {
+      const id = tplEl.value;
+      const lang = langEl.value;
+      if (!id) {
+        subjEl.value = '';
+        mountWith([], lang);
+        return;
+      }
+      const tpl = templates.find(t => t.templateId === id);
+      if (!tpl) return;
+      subjEl.value = lang === 'EN' ? (tpl.subjectEN || tpl.subjectAR || '') : (tpl.subjectAR || tpl.subjectEN || '');
+      const tplBlocks = lang === 'EN'
+        ? (tpl.blocksEN && tpl.blocksEN.length ? tpl.blocksEN : tpl.blocksAR)
+        : (tpl.blocksAR && tpl.blocksAR.length ? tpl.blocksAR : tpl.blocksEN);
+      mountWith(tplBlocks || [], lang);
+    }
+
+    tplEl.addEventListener('change', applyTemplate);
+    langEl.addEventListener('change', () => {
+      // If a template is selected, swap to that language's variant; else just re-mount empty in new lang.
+      if (tplEl.value) applyTemplate();
+      else mountWith(blocks, langEl.value);
     });
-    subjEl.addEventListener('input', () => comp.refreshPreview());
+
+    // Lazy-load templates so the modal opens instantly.
+    api('/api/data/templates').then(r => {
+      templates = r.templates || [];
+      // Sort by name; "newsletter_welcome" et al stay searchable but predictable.
+      templates.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+      tplEl.innerHTML = '<option value="">— Start blank —</option>' +
+        templates.map(t => `<option value="${escapeHtml(t.templateId)}">${escapeHtml(t.name || t.templateId)}</option>`).join('');
+    }).catch(() => {
+      // Non-fatal — composer still works without templates.
+      tplEl.disabled = true;
+      tplEl.innerHTML = '<option value="">(failed to load templates)</option>';
+    });
 
     o.querySelector('#e-cancel').onclick = () => o.remove();
     o.querySelector('#e-send').onclick = async () => {
