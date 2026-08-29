@@ -12,11 +12,13 @@ export class InMemoryCostTracker {
   reset(): void { this.totalUSD = 0; }
 }
 
-// Anthropic Claude Opus 4.7 pricing as of April 2026.
-const INPUT_USD_PER_MTOK = 15;
-const OUTPUT_USD_PER_MTOK = 75;
-const CACHE_WRITE_USD_PER_MTOK = 18.75;
-const CACHE_READ_USD_PER_MTOK = 1.5;
+// Anthropic Claude Opus 5 pricing as of August 2026 ($5/$25 per MTok;
+// cache write 1.25x input, cache read 0.1x input). Previous constants
+// ($15/$75) were stale and over-counted spend 3x against the cap.
+const INPUT_USD_PER_MTOK = 5;
+const OUTPUT_USD_PER_MTOK = 25;
+const CACHE_WRITE_USD_PER_MTOK = 6.25;
+const CACHE_READ_USD_PER_MTOK = 0.5;
 
 export interface UsageLike {
   input_tokens?: number;

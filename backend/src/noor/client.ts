@@ -21,8 +21,8 @@ export function createNoorClient(config: Config, costTracker: InMemoryCostTracke
     }
 
     const msg = await anthropic.beta.promptCaching.messages.create({
-      model: 'claude-opus-4-7',
-      max_tokens: 4096,
+      model: 'claude-opus-5',
+      max_tokens: 16000,
       system: [
         {
           type: 'text',

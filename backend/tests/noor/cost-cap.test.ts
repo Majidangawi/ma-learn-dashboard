@@ -27,13 +27,13 @@ describe('InMemoryCostTracker', () => {
 
 describe('usdCost', () => {
   it('computes cost from input/output tokens', () => {
-    // 1M input + 1M output = $15 + $75 = $90
-    expect(usdCost({ input_tokens: 1_000_000, output_tokens: 1_000_000 })).toBe(90);
+    // Claude Opus 5 pricing: 1M input + 1M output = $5 + $25 = $30
+    expect(usdCost({ input_tokens: 1_000_000, output_tokens: 1_000_000 })).toBe(30);
   });
 
   it('cache reads are cheap', () => {
-    // 1M cache read = $1.50
-    expect(usdCost({ cache_read_input_tokens: 1_000_000 })).toBe(1.5);
+    // 1M cache read = $0.50 (0.1x input rate)
+    expect(usdCost({ cache_read_input_tokens: 1_000_000 })).toBe(0.5);
   });
 
   it('handles missing fields', () => {

@@ -184,8 +184,8 @@ Produce both AR and EN versions unless language is restricted to one. The AR mus
 Return ONLY valid JSON (no backticks, no markdown fences). If language=AR, omit subjectEN and blocksEN. If language=EN, omit subjectAR and blocksAR.`;
 
     const msg = await anthropic.messages.create({
-      model: 'claude-opus-4-7',
-      max_tokens: 2500,
+      model: 'claude-opus-5',
+      max_tokens: 8000,
       system,
       messages: [{ role: 'user', content: `Idea:\n${body.idea}\n\nLanguage: ${body.language}` }],
     });
