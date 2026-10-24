@@ -2,128 +2,201 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Majid Angawi</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#151009">
+<title>ماجد عنقاوي | Majid Angawi</title>
+<meta name="description" content="ماجد عنقاوي — صناعة الإلهام. معادلة صناعة الإلهام، استشارة الذكاء الاصطناعي والإبداع، والتواصل المباشر.">
+<meta property="og:title" content="ماجد عنقاوي | Majid Angawi">
+<meta property="og:description" content="صناعة الإلهام — الذكاء الاصطناعي والإبداع">
+<meta property="og:image" content="https://linkinbio.malearnsa.com/linkbio/majid-hero.webp">
+<!-- Design System V4 — tokens are linked, never redeclared (malearnsa.com/brand/) -->
+<link rel="stylesheet" href="https://malearnsa.com/brand/tokens.css">
+<link rel="preload" as="image" href="linkbio/majid-hero.webp">
 <style>
-  :root { --bg:#080808; --surface:#141414; --gold:#C9A84C; --ivory:#F5F0E8; --silver:#BBBBBB; --border:rgba(201,168,76,0.14); }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  body { background:var(--bg); color:var(--ivory); font-family:'Cairo',sans-serif; min-height:100vh; }
-  .wrap { max-width:480px; margin:0 auto; padding:40px 20px 60px; text-align:center; }
-  .avatar { width:100px; height:100px; border-radius:50%; border:2px solid var(--gold); margin:0 auto 12px; object-fit:cover; }
-  .tagline-ar { color:var(--gold); font-size:1.1rem; font-weight:700; margin-bottom:4px; }
-  .tagline-en { color:var(--silver); font-size:.9rem; margin-bottom:28px; }
-  .link { display:block; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:12px; color:var(--ivory); text-decoration:none; transition:transform .15s; }
-  .link:hover { transform:translateY(-2px); border-color:var(--gold); }
-  .link .titleAR { color:var(--gold); font-weight:700; font-size:1rem; }
-  .link .titleEN { color:var(--silver); font-size:.8rem; margin-top:2px; }
-  .link .icon { float:right; font-size:1.3rem; margin-left:12px; }
-  footer { color:var(--silver); font-size:.75rem; margin-top:40px; }
-  .lib-newsletter { background:#111; border:1px solid #222; border-radius:10px; padding:14px; margin:16px auto 20px; max-width:500px; text-align:right; }
-  .lib-nl-label { color:#C9A84C; font-weight:bold; margin-bottom:8px; }
-  .lib-newsletter input[type="text"], .lib-newsletter input[type="email"] { width:100%; background:#0a0a0a; border:1px solid #2a2a2a; color:#eee; padding:10px; border-radius:6px; margin-bottom:8px; font:inherit; }
-  .lib-newsletter button { width:100%; background:#C9A84C; color:#0E0E0E; border:none; padding:10px; border-radius:6px; font-weight:bold; cursor:pointer; font:inherit; }
-  .lib-newsletter button:hover { filter:brightness(1.1); }
-  .lib-nl-success { color:#C9A84C; text-align:center; font-weight:bold; padding:14px 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: var(--lh-body); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent); color: var(--on-accent); }
+  a { color: inherit; text-decoration: none; }
+  .lib { max-width: 480px; margin: 0 auto; padding: 0 16px 40px; position: relative; overflow: hidden; }
+
+  /* ── Hero: cutout portrait on the warm glow (layout after the reference: photo-led, mark top-start) ── */
+  .hero { position: relative; height: 500px; margin: 0 -16px; overflow: hidden; }
+  .hero-glow { position: absolute; inset: 0;
+    background: radial-gradient(52% 46% at 50% 34%, rgba(255,106,60,.42), rgba(255,96,44,.10) 55%, transparent 74%); }
+  .hero-photo { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: min(372px, 94%); height: auto; filter: contrast(1.04); }
+  .hero-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; background: linear-gradient(to top, var(--bg) 18%, rgba(21,16,9,.75) 55%, transparent); }
+  .hero-mark { position: absolute; top: 22px; right: 20px; width: 62px; height: auto; opacity: .96; }
+  .hero-copy { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; padding: 0 20px; }
+  .name { font-family: var(--disp); font-weight: 700; font-size: clamp(2rem, 9vw, 2.5rem); line-height: 1.25; letter-spacing: var(--track-disp); }
+  .name span { color: var(--accent-hot); }
+  .role { color: var(--muted); font-size: var(--fs-sm); font-weight: 600; margin-top: 4px; }
+
+  /* ── Social icons between two hairlines (diamond ends) ── */
+  .socials { display: flex; align-items: center; gap: 12px; margin: 18px 0 6px; }
+  /* RTL: the first rule sits on the right, the last on the left — both strong (with a diamond) next to the icons */
+  .socials .rule { flex: 1; height: 1px; position: relative; }
+  .socials .rule::after { content: ''; position: absolute; top: -3px; width: 7px; height: 7px; background: var(--accent-hot); transform: rotate(45deg); }
+  .socials .rule:first-child { background: linear-gradient(to right, var(--accent-line), transparent); }
+  .socials .rule:first-child::after { left: -2px; }
+  .socials .rule:last-child { background: linear-gradient(to left, var(--accent-line), transparent); }
+  .socials .rule:last-child::after { right: -2px; }
+  .soc { display: flex; gap: 10px; }
+  .soc a { width: 50px; height: 50px; border-radius: var(--r-md); background: var(--card); border: 1px solid var(--line-strong); display: flex; align-items: center; justify-content: center; color: var(--ink);
+    transition: transform var(--dur-med) var(--ease), border-color var(--dur-med), color var(--dur-med), background var(--dur-med); }
+  .soc a:hover, .soc a:focus-visible { transform: var(--lift); border-color: var(--accent); color: var(--accent-hot); background: var(--card-2); outline: none; }
+  .soc svg { width: 22px; height: 22px; }
+
+  .motto { text-align: center; font-family: var(--disp); font-weight: 400; font-size: 1.22rem; color: var(--ink); margin: 18px 0 20px; line-height: 1.6; }
+  .motto span { color: var(--accent-hot); }
+
+  /* ── Link cards (router buttons: r-xl) ── */
+  .cards { display: flex; flex-direction: column; gap: 12px; }
+  .card { display: flex; align-items: center; gap: 14px; min-height: 92px; padding: 14px 16px; border-radius: var(--r-xl);
+    background: linear-gradient(160deg, var(--card-2), var(--card)); border: 1px solid var(--line); box-shadow: var(--shadow-card);
+    transition: transform var(--dur-med) var(--ease), border-color var(--dur-med), box-shadow var(--dur-med); }
+  .card:hover, .card:focus-visible { transform: var(--lift-card); border-color: var(--accent-line); box-shadow: var(--shadow-raised); outline: none; }
+  .card .ic { flex-shrink: 0; width: 58px; height: 58px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: var(--accent-soft); border: 1px solid var(--accent-line); color: var(--accent-hot); }
+  .card .ic svg { width: 26px; height: 26px; }
+  .card .tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .card .t { font-family: var(--disp); font-weight: 700; font-size: 1.12rem; line-height: 1.4; }
+  .card .d { color: var(--muted); font-size: .84rem; line-height: 1.6; text-wrap: pretty; }
+  .card .go { flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: flex; align-items: center; justify-content: center; color: var(--ink);
+    transition: background var(--dur-med), border-color var(--dur-med); }
+  .card .go svg { width: 16px; height: 16px; }
+  .card:hover .go { border-color: var(--accent); background: var(--accent-soft); }
+  /* The first card is the featured one — the page's single orange moment */
+  .card.feat { background: var(--grad-accent-card); border-color: transparent; color: var(--on-accent); box-shadow: var(--shadow-accent); }
+  .card.feat .ic { background: rgba(42,17,5,.12); border-color: rgba(42,17,5,.28); color: var(--on-accent); }
+  .card.feat .d { color: rgba(42,17,5,.78); }
+  .card.feat .go { border-color: rgba(42,17,5,.4); color: var(--on-accent); }
+  .card.feat:hover { box-shadow: var(--shadow-accent-hover); border-color: transparent; }
+  .card.feat:hover .go { background: rgba(42,17,5,.12); }
+
+  .skeleton { height: 92px; border-radius: var(--r-xl); background: linear-gradient(90deg, var(--card) 0%, var(--card-2) 50%, var(--card) 100%); background-size: 200% 100%; animation: sk 1.4s linear infinite; }
+  @keyframes sk { to { background-position: -200% 0; } }
+
+  footer { text-align: center; color: var(--faint); font-size: var(--fs-micro); margin-top: 34px; }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { .card, .soc a { transition: none; } .skeleton { animation: none; } }
 </style>
 </head>
 <body>
-<div class="wrap" id="wrap"><p style="color:var(--silver)">…</p></div>
+<main class="lib">
+  <header class="hero">
+    <div class="hero-glow"></div>
+    <img class="hero-photo" src="linkbio/majid-hero.webp" alt="ماجد عنقاوي" width="900" height="1117">
+    <div class="hero-fade"></div>
+    <img class="hero-mark" src="https://malearnsa.com/brand_assets/logo-majid-white.png" alt="Majid Angawi">
+    <div class="hero-copy">
+      <h1 class="name" id="name">ماجد <span>عنقاوي</span></h1>
+      <p class="role" id="role">مدير إبداعي · متخصص إبداعي في الذكاء الاصطناعي · معلّم ومرشد</p>
+    </div>
+  </header>
+
+  <nav class="socials" aria-label="حساباتي">
+    <span class="rule" aria-hidden="true"></span>
+    <div class="soc" id="soc"></div>
+    <span class="rule" aria-hidden="true"></span>
+  </nav>
+
+  <p class="motto" id="motto">المستقبل .. تُخطّه أناملُ <span>المبدعين</span></p>
+
+  <section class="cards" id="cards" aria-label="الروابط">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+  </section>
+
+  <footer>© ٢٠٢٦ ماجد عنقاوي · جميع الحقوق محفوظة</footer>
+</main>
+
 <script>
   const API = (location.host.startsWith('link-staging.') || location.host.startsWith('linkinbio-staging.'))
     ? 'https://api-staging.malearnsa.com'
     : 'https://api.malearnsa.com';
   const APPS_SCRIPT = '__APPS_SCRIPT_URL__';
 
-  function pickLang() {
-    const l = (document.documentElement.lang || 'ar').toLowerCase();
-    return l.startsWith('a') ? 'AR' : 'EN';
-  }
+  // Same links as the LinkInBio sheet — shown only if the API can't be reached,
+  // so a visitor from Instagram never lands on an empty page.
+  const FALLBACK = {
+    header: {},
+    items: [
+      { linkId: 'LNK-CIF', icon: 'cif', titleAR: 'معادلة صناعة الإلهام 2.0', description: 'سير عمل إبداعي من ٧ مراحل، من البريف إلى الإنتاج بالـ\u00a0AI', url: 'https://malearnsa.com/creative-ai-workshop/', order: 1 },
+      { linkId: 'LNK-CONSULT', icon: 'consult', titleAR: 'استشارة الذكاء الاصطناعي والإبداع', description: 'ساعة فردية عبر Google Meet، احجز موعدك مباشرة', url: 'https://checkout.malearnsa.com/consultation/', order: 2 },
+      { linkId: 'LNK-4D16D57A', icon: 'calendar', titleAR: 'خلينا نشتغل مع بعض', description: 'احجز اتصال استكشافي مجاني', url: 'https://calendly.com/angawi-majid/30min', order: 3 },
+      { linkId: 'LNK-1FBEB69F', icon: 'waitlist', titleAR: 'قائمة الانتظار', description: 'عروضنا وخصوماتنا وإصداراتنا الجديدة، أول ما تنزل', url: 'https://malearnsa.com/waitlist/', order: 4 },
+      { linkId: 'LNK-4D9AC782', icon: 'instagram', titleAR: 'Instagram', url: 'https://www.instagram.com/majidangawi/', order: 5 },
+      { linkId: 'LNK-TIKTOK', icon: 'tiktok', titleAR: 'TikTok', url: 'https://www.tiktok.com/@majidangawi', order: 6 },
+      { linkId: 'LNK-4CB29B4D', icon: 'whatsapp', titleAR: 'WhatsApp', url: 'https://api.whatsapp.com/message/54FW53NIALIWO1', order: 7 }
+    ]
+  };
 
-  function mountNewsletter(wrap) {
-    if (localStorage.getItem('ma_nl_subscribed')) return;
-    const lang = pickLang();
-    const labelText = lang === 'AR' ? 'اشترك في النشرة البريدية' : 'Join the newsletter';
-    const namePh = lang === 'AR' ? 'الاسم' : 'Name';
-    const emailPh = lang === 'AR' ? 'البريد الإلكتروني' : 'Email';
-    const btnText = lang === 'AR' ? 'اشتراك' : 'Subscribe';
-    const successText = lang === 'AR' ? '✓ شكراً — أنت في القائمة' : "✓ You're in — check your inbox";
-    const section = document.createElement('section');
-    section.className = 'lib-newsletter';
-    section.id = 'lib-nl';
-    section.innerHTML = `
-      <div class="lib-nl-body">
-        <div class="lib-nl-label">${labelText}</div>
-        <input id="lib-nl-name" type="text" placeholder="${namePh}" autocomplete="name" />
-        <input id="lib-nl-email" type="email" placeholder="${emailPh}" autocomplete="email" />
-        <input type="text" name="website_url" style="display:none" tabindex="-1" autocomplete="off" />
-        <button id="lib-nl-submit" type="button">${btnText}</button>
-      </div>
-      <div class="lib-nl-success" style="display:none">${successText}</div>`;
-    const firstLink = wrap.querySelector('a.link');
-    if (firstLink) wrap.insertBefore(section, firstLink);
-    else wrap.appendChild(section);
+  const SOCIAL = {
+    instagram: { label: 'Instagram', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="2.5" width="19" height="19" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.6" cy="6.4" r="1" fill="currentColor" stroke="none"/></svg>' },
+    tiktok:    { label: 'TikTok', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>' },
+    whatsapp:  { label: 'WhatsApp', svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>' }
+  };
+  const STROKE = (inner) => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+  const CARD_ICON = {
+    cif:      STROKE('<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.13-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.13a.5.5 0 0 1 .96 0l1.58 6.13a2 2 0 0 0 1.44 1.44l6.13 1.58a.5.5 0 0 1 0 .96l-6.13 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.13a.5.5 0 0 1-.96 0z"/><path d="M20 3v4M22 5h-4"/>'),
+    consult:  STROKE('<path d="m16 13 5.22 3.48a.5.5 0 0 0 .78-.42V7.87a.5.5 0 0 0-.75-.43L16 10.5"/><rect x="2" y="6" width="14" height="12" rx="2.5"/>'),
+    calendar: STROKE('<rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/><path d="M8 14.5h.01M12 14.5h.01M16 14.5h.01M8 18h.01M12 18h.01"/>'),
+    waitlist: STROKE('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>'),
+    link:     STROKE('<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>')
+  };
+  const CHEVRON = STROKE('<path d="m15 18-6-6 6-6"/>');
 
-    document.getElementById('lib-nl-submit').onclick = async () => {
-      const name = document.getElementById('lib-nl-name').value.trim();
-      const email = document.getElementById('lib-nl-email').value.trim();
-      const honeypot = section.querySelector('input[name="website_url"]').value;
-      if (!email) return;
-      try {
-        const res = await fetch(API + '/api/public/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name,
-            email,
-            source: 'lib',
-            language: lang,
-            website_url: honeypot,
-          }),
-        });
-        if (res.ok) {
-          section.querySelector('.lib-nl-body').style.display = 'none';
-          section.querySelector('.lib-nl-success').style.display = 'block';
-          localStorage.setItem('ma_nl_subscribed', '1');
+  const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Header text may carry ONE <span> (the orange word) — everything else is escaped.
+  const withSpan = (s) => esc(s).replace(/&lt;span&gt;/g, '<span>').replace(/&lt;\/span&gt;/g, '</span>');
+  const safeUrl = (u) => /^https?:\/\//i.test(String(u || '')) ? esc(u) : '#';
+
+  function render(data) {
+    const items = (data.items || []).slice().sort((a, b) => (a.order || 0) - (b.order || 0));
+    const socials = items.filter(i => SOCIAL[String(i.icon || '').toLowerCase()]);
+    const cards = items.filter(i => !SOCIAL[String(i.icon || '').toLowerCase()]);
+    const h = data.header || {};
+    if (h.nameAR) document.getElementById('name').innerHTML = withSpan(h.nameAR);
+    if (h.subtitleAR) document.getElementById('role').textContent = h.subtitleAR;
+    if (h.bioAR) {
+      const words = String(h.bioAR).trim().split(/\s+/);
+      const last = words.pop();
+      document.getElementById('motto').innerHTML = esc(words.join(' ')) + (last ? ' <span>' + esc(last) + '</span>' : '');
+    }
+    document.getElementById('soc').innerHTML = socials.map(i => {
+      const s = SOCIAL[String(i.icon).toLowerCase()];
+      return '<a href="' + safeUrl(i.url) + '" data-id="' + esc(i.linkId) + '" target="_blank" rel="noopener" aria-label="' + s.label + '">' + s.svg + '</a>';
+    }).join('');
+    document.getElementById('cards').innerHTML = cards.map((i, n) => {
+      const ic = CARD_ICON[String(i.icon || '').toLowerCase()] || CARD_ICON.link;
+      return '<a class="card' + (n === 0 ? ' feat' : '') + '" href="' + safeUrl(i.url) + '" data-id="' + esc(i.linkId) + '" target="_blank" rel="noopener">' +
+        '<span class="ic" aria-hidden="true">' + ic + '</span>' +
+        '<span class="tx"><span class="t">' + esc(i.titleAR) + '</span>' + (i.description ? '<span class="d">' + esc(i.description) + '</span>' : '') + '</span>' +
+        '<span class="go" aria-hidden="true">' + CHEVRON + '</span></a>';
+    }).join('');
+    for (const a of document.querySelectorAll('a[data-id]')) {
+      a.addEventListener('click', () => {
+        if (APPS_SCRIPT && !APPS_SCRIPT.startsWith('__')) {
+          navigator.sendBeacon?.(APPS_SCRIPT, new Blob([new URLSearchParams({ action: 'admin_increment_linkbio_click', link_id: a.dataset.id }).toString()],
+            { type: 'application/x-www-form-urlencoded' }));
         }
-      } catch (e) { /* silent fail — user can retry */ }
-    };
-  }
-
-  async function init() {
-    try {
-      const res = await fetch(API + '/api/public/linkbio');
-      const { items, header } = await res.json();
-      const wrap = document.getElementById('wrap');
-      wrap.innerHTML = `
-        <img class="avatar" src="${header.photoURL || 'https://majidangawi.com/me.jpg'}" alt="" />
-        <div class="tagline-ar">${header.taglineAR}</div>
-        <div class="tagline-en">${header.taglineEN}</div>
-        ${items.map(i => `
-          <a class="link" href="${i.url}" data-id="${i.linkId}" target="_blank" rel="noopener">
-            ${i.icon ? `<span class="icon">${i.icon}</span>` : ''}
-            <div class="titleAR">${i.titleAR}</div>
-            <div class="titleEN">${i.titleEN}</div>
-            ${i.description ? `<div style="color:var(--silver);font-size:.78rem;margin-top:4px">${i.description}</div>` : ''}
-          </a>`).join('')}
-        <footer>© Majid Angawi · majidangawi.com</footer>`;
-      mountNewsletter(wrap);
-      for (const a of wrap.querySelectorAll('a[data-id]')) {
-        a.addEventListener('click', () => {
-          if (APPS_SCRIPT && !APPS_SCRIPT.startsWith('__')) {
-            navigator.sendBeacon?.(
-              APPS_SCRIPT,
-              new Blob([new URLSearchParams({ action: 'admin_increment_linkbio_click', link_id: a.dataset.id }).toString()],
-                       { type: 'application/x-www-form-urlencoded' }));
-          }
-        });
-      }
-    } catch (e) {
-      document.getElementById('wrap').innerHTML = `<p style="color:#c66">Temporarily unavailable.</p>`;
+      });
     }
   }
-  init();
+
+  (async function init() {
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 6000);
+      const res = await fetch(API + '/api/public/linkbio', { signal: ctl.signal });
+      clearTimeout(t);
+      const data = await res.json();
+      if (!data || !Array.isArray(data.items) || !data.items.length) throw new Error('empty');
+      render(data);
+    } catch (e) {
+      render(FALLBACK);
+    }
+  })();
 </script>
 </body>
 </html>
