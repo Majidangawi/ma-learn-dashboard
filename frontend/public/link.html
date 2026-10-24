@@ -8,10 +8,10 @@
 <meta name="description" content="ماجد عنقاوي — صناعة الإلهام. معادلة صناعة الإلهام، استشارة الذكاء الاصطناعي والإبداع، والتواصل المباشر.">
 <meta property="og:title" content="ماجد عنقاوي | Majid Angawi">
 <meta property="og:description" content="صناعة الإلهام — الذكاء الاصطناعي والإبداع">
-<meta property="og:image" content="https://linkinbio.malearnsa.com/linkbio/majid-hero.webp">
+<meta property="og:image" content="https://linkinbio.malearnsa.com/images/profile.jpg">
 <!-- Design System V4 — tokens are linked, never redeclared (malearnsa.com/brand/) -->
 <link rel="stylesheet" href="https://malearnsa.com/brand/tokens.css">
-<link rel="preload" as="image" href="linkbio/majid-hero.webp">
+<link rel="preload" as="image" href="linkbio/majid-hero.jpg">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--ink); font-family: var(--body); line-height: var(--lh-body); min-height: 100vh; -webkit-font-smoothing: antialiased; }
@@ -19,13 +19,20 @@
   a { color: inherit; text-decoration: none; }
   .lib { max-width: 480px; margin: 0 auto; padding: 0 16px 40px; position: relative; overflow: hidden; }
 
-  /* ── Hero: cutout portrait on the warm glow (layout after the reference: photo-led, mark top-start) ── */
-  .hero { position: relative; height: 500px; margin: 0 -16px; overflow: hidden; }
-  .hero-glow { position: absolute; inset: 0;
-    background: radial-gradient(52% 46% at 50% 34%, rgba(255,106,60,.42), rgba(255,96,44,.10) 55%, transparent 74%); }
-  .hero-photo { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: min(372px, 94%); height: auto; filter: contrast(1.04); }
-  .hero-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 190px; background: linear-gradient(to top, var(--bg) 18%, rgba(21,16,9,.75) 55%, transparent); }
-  .hero-mark { position: absolute; top: 22px; right: 20px; width: 62px; height: auto; opacity: .96; }
+  /* ── Hero: the full portrait (its own background), melting into the dark page (layout after the reference) ── */
+  .hero { position: relative; height: 560px; margin: 0 -16px; overflow: hidden; }
+  .hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 8%;
+    -webkit-mask-image: linear-gradient(to bottom, #000 38%, rgba(0,0,0,.86) 48%, rgba(0,0,0,.62) 58%, rgba(0,0,0,.38) 68%, rgba(0,0,0,.18) 79%, rgba(0,0,0,.06) 89%, transparent 98%);
+            mask-image: linear-gradient(to bottom, #000 38%, rgba(0,0,0,.86) 48%, rgba(0,0,0,.62) 58%, rgba(0,0,0,.38) 68%, rgba(0,0,0,.18) 79%, rgba(0,0,0,.06) 89%, transparent 98%); }
+  /* Wider than the phone column: also fade the sides, so the photo never ends in a hard edge */
+  @media (min-width: 520px) {
+    .hero-photo {
+      -webkit-mask-image: linear-gradient(to bottom, #000 38%, rgba(0,0,0,.86) 48%, rgba(0,0,0,.62) 58%, rgba(0,0,0,.38) 68%, rgba(0,0,0,.18) 79%, rgba(0,0,0,.06) 89%, transparent 98%), linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+              mask-image: linear-gradient(to bottom, #000 38%, rgba(0,0,0,.86) 48%, rgba(0,0,0,.62) 58%, rgba(0,0,0,.38) 68%, rgba(0,0,0,.18) 79%, rgba(0,0,0,.06) 89%, transparent 98%), linear-gradient(to right, transparent, #000 14%, #000 86%, transparent);
+      -webkit-mask-composite: source-in; mask-composite: intersect; }
+  }
+  .hero-fade { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: linear-gradient(to top, var(--bg) 22%, transparent); }
+  .hero-mark { position: absolute; top: 20px; right: 20px; width: 58px; height: auto; }
   .hero-copy { position: absolute; left: 0; right: 0; bottom: 18px; text-align: center; padding: 0 20px; }
   .name { font-family: var(--disp); font-weight: 700; font-size: clamp(2rem, 9vw, 2.5rem); line-height: 1.25; letter-spacing: var(--track-disp); }
   .name span { color: var(--accent-hot); }
@@ -85,10 +92,9 @@
 <body>
 <main class="lib">
   <header class="hero">
-    <div class="hero-glow"></div>
-    <img class="hero-photo" src="linkbio/majid-hero.webp" alt="ماجد عنقاوي" width="900" height="1117">
+    <img class="hero-photo" src="linkbio/majid-hero.jpg" alt="ماجد عنقاوي" width="900" height="1117">
     <div class="hero-fade"></div>
-    <img class="hero-mark" src="https://malearnsa.com/brand_assets/logo-majid-white.png" alt="Majid Angawi">
+    <img class="hero-mark" src="https://malearnsa.com/brand_assets/logo-majid-black.png" alt="Majid Angawi">
     <div class="hero-copy">
       <h1 class="name" id="name">ماجد <span>عنقاوي</span></h1>
       <p class="role" id="role">مدير إبداعي · متخصص إبداعي في الذكاء الاصطناعي · معلّم ومرشد</p>
