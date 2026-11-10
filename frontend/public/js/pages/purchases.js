@@ -6,7 +6,18 @@
 import { icon } from '../ui/icons.js';
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2tDtm76JhBU-cwT6wnFVTp5ysYxsf73ZKGxoY-ZadbswSXRK_CkjpgkDbds4cJCO0/exec';
-const ADMIN_TOKEN = 'MAL-ADMIN-2026';
+// The waitlist admin key is never shipped in this file. It is asked for once per tab
+// (sessionStorage) and sent only in a POST body, never in a URL.
+const KEY_STORE = 'ma.waitlistAdminKey';
+
+function adminKey() {
+  let key = sessionStorage.getItem(KEY_STORE) || '';
+  if (!key) {
+    key = (window.prompt('Waitlist admin key') || '').trim();
+    if (key) sessionStorage.setItem(KEY_STORE, key);
+  }
+  return key;
+}
 
 function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -33,20 +44,24 @@ function fmtAbsolute(iso) {
   return d.toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
-// Apps Script via POST + 'no-cors' won't return readable JSON.
-// For reads we need real responses, so we use GET with query params.
+// POST with a text/plain JSON body: a simple CORS request (no preflight), and Apps Script's
+// redirect to its echo URL returns readable JSON. Keeps the key out of URLs and request logs.
 async function adminCall(action, extra = {}) {
-  const params = new URLSearchParams({
-    action,
-    admin_token: ADMIN_TOKEN,
-    ...extra,
-  });
-  const res = await fetch(APPS_SCRIPT_URL + '?' + params.toString(), {
-    method: 'GET',
+  const key = adminKey();
+  if (!key) throw new Error('admin key required');
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action, admin_token: key, ...extra }),
     redirect: 'follow',
   });
   if (!res.ok) throw new Error('http_' + res.status);
-  return res.json();
+  const data = await res.json();
+  if (data && data.error === 'unauthorized') {
+    sessionStorage.removeItem(KEY_STORE); // wrong or old key: ask again on the next try
+    throw new Error('unauthorized (key cleared, press Refresh to enter it again)');
+  }
+  return data;
 }
 
 function toast(msg, tone = 'default') {

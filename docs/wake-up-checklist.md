@@ -36,7 +36,7 @@ Then in the staging Apps Script web UI:
 Smoke test:
 ```bash
 curl -s -L -X POST "<STAGING_APPS_SCRIPT_URL>" \
-  -d "action=admin_toggle_lesson" -d "admin_token=MAL-ADMIN-2026" \
+  -d "action=admin_toggle_lesson" -d "admin_token=$APPS_SCRIPT_ADMIN_TOKEN" \
   -d "lesson_id=NONEXISTENT" -d "active=TRUE"
 ```
 Expected: `{"ok":false,"error":"lesson_not_found"}`. If so, gate works.
@@ -50,8 +50,9 @@ git pull
 cd backend
 npm install
 npm run build
-# add APPS_SCRIPT_ADMIN_TOKEN to env file (matches ADMIN_TOKEN constant in Code.js)
-grep -q APPS_SCRIPT_ADMIN_TOKEN /etc/ma-learn-dashboard/.env.staging || echo "APPS_SCRIPT_ADMIN_TOKEN=MAL-ADMIN-2026" >> /etc/ma-learn-dashboard/.env.staging
+# add APPS_SCRIPT_ADMIN_TOKEN to env file (matches ADMIN_TOKEN in the token-validator).
+# Export it from the vault first (TOKEN_VALIDATOR_ADMIN_TOKEN). Never paste the value into this doc.
+grep -q APPS_SCRIPT_ADMIN_TOKEN /etc/ma-learn-dashboard/.env.staging || echo "APPS_SCRIPT_ADMIN_TOKEN=$APPS_SCRIPT_ADMIN_TOKEN" >> /etc/ma-learn-dashboard/.env.staging
 pm2 reload ma-learn-dashboard-staging
 pm2 status
 curl -s https://api-staging.malearnsa.com/health
